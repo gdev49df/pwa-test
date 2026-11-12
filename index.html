@@ -6,65 +6,36 @@
   <title>Приложения W-Dev</title>
   <meta name="theme-color" content="#111112">
   <meta name="description" content="Небольшие приложения, которые работают на iPhone без App Store.">
-  <link rel="apple-touch-icon" href="habits/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="planner/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="theme.css">
   <style>
-    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("fonts/unbounded-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
-    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("fonts/unbounded-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
-    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("fonts/onest-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
-    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("fonts/onest-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
-
-    :root {
-      --bg: #111112; --card: #1c1c1e; --line: #2c2c2f; --ink: #f2f2f4; --muted: #8e8e95; --silver: #d9d9de;
-      --font: "Onest", system-ui, sans-serif; --display: "Unbounded", "Onest", system-ui, sans-serif;
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
-    body { min-height: 100dvh; -webkit-text-size-adjust: 100%;
-      background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 14px 14px; }
-    .wrap { max-width: 520px; margin: 0 auto; padding: max(40px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); }
-    .brand { margin: 0; font-size: 14px; color: var(--muted); letter-spacing: .02em; }
-    h1 { margin: 10px 0 0; font-family: var(--display); font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -.03em; }
-    .lead { margin: 14px 0 32px; max-width: 34ch; font-size: 16px; line-height: 1.5; color: var(--muted); }
-    .apps { display: grid; gap: 14px; padding: 0; margin: 0; list-style: none; }
-    .app { display: block; padding: 22px; border-radius: 26px; background: var(--card); border: 1px solid var(--line);
-      color: inherit; text-decoration: none; transition: transform .35s ease, border-color .35s ease; }
-    .app:active { transform: scale(.985); border-color: #4a4a50; }
-    .app.main { background: linear-gradient(160deg, #26262a, #1c1c1e); }
-    .app h2 { margin: 0; font-family: var(--display); font-size: 20px; line-height: 1.2; font-weight: 600; letter-spacing: -.02em; }
-    .app p { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: var(--muted); }
-    .tag { display: inline-block; margin-top: 16px; padding: 6px 12px; border-radius: 999px; background: var(--silver); color: #111; font-size: 13px; font-weight: 600; }
-    .app:not(.main) .tag { background: transparent; color: var(--silver); border: 1px solid #3a3a3f; }
-    .how { margin: 32px 0 0; font-size: 14px; line-height: 1.55; color: var(--muted); }
-    .how b { color: var(--silver); font-weight: 600; }
-    .foot { margin: 28px 0 0; font-size: 13px; color: var(--muted); }
-    :focus-visible { outline: 2px solid var(--silver); outline-offset: 3px; }
-    @media (prefers-reduced-motion: reduce) { .app { transition: none; } }
+    .wrap { padding: max(32px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom)); }
+    .head { padding: 0 4px 22px; }
+    .lead { margin: 12px 0 0; max-width: 34ch; font-size: 16px; color: var(--mute); }
+    .apps { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+    a.card { display: block; padding: 20px 18px; color: inherit; text-decoration: none; }
+    a.card:active { transform: scale(.98); }
+    .n { margin: 0; font-family: var(--label); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--mute); }
+    .card h2 { margin: 8px 0 0; font-family: var(--display); font-size: 30px; font-weight: 600; line-height: 1.08; }
+    .card p.d { margin: 8px 0 0; max-width: 32ch; font-size: 15px; color: var(--mute); }
+    .go { display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 12px; background: var(--paper); color: #111; font-family: var(--label); font-size: 14px; letter-spacing: .08em; }
+    .how { margin: 24px 4px 0; font-size: 14px; line-height: 1.55; color: var(--mute); }
+    .how b { color: var(--silver); font-weight: 400; }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <p class="brand">w-dev</p>
-    <h1>приложения для iphone</h1>
-    <p class="lead">работают прямо из safari, без app store. добавь нужное на экран «домой».</p>
-
+  <div class="grain"></div>
+  <main class="shell wrap">
+    <header class="head">
+      <p class="kicker">w-dev</p>
+      <h1 class="big">приложения<br>для iphone</h1>
+      <p class="lead">работают прямо из safari, без app store.</p>
+    </header>
     <ul class="apps">
-      <li><a class="app main" href="planner/">
-        <h2>ddx planner</h2>
-        <p>задачи, заметки, еда и расходы в одном месте. говоришь в микрофон, а приложение раскладывает всё по местам.</p>
-        <span class="tag">открыть</span>
-      </a></li>
-      <li><a class="app" href="notes/">
-        <h2>голосовые заметки</h2>
-        <p>нажал, надиктовал, текст сохранился.</p>
-        <span class="tag">открыть</span>
-      </a></li>
-      <li><a class="app" href="habits/">
-        <h2>привычки</h2>
-        <p>отмечай привычку каждый день, а приложение считает дни подряд.</p>
-        <span class="tag">открыть</span>
-      </a></li>
+      <li><a class="card dots" href="planner/"><p class="n">главное</p><h2>ddx planner</h2><p class="d">задачи, заметки, еда и расходы в одном месте. говоришь в микрофон, а приложение раскладывает всё по местам.</p><span class="go">открыть</span></a></li>
+      <li><a class="card dots" href="notes/"><p class="n">голос</p><h2>заметки</h2><p class="d">нажал, надиктовал, текст сохранился.</p><span class="go">открыть</span></a></li>
+      <li><a class="card dots" href="habits/"><p class="n">дни подряд</p><h2>привычки</h2><p class="d">отмечай привычку каждый день, а приложение считает серию.</p><span class="go">открыть</span></a></li>
     </ul>
-
     <p class="how"><b>как установить:</b> открой приложение в safari, нажми «поделиться» и выбери «на экран домой».</p>
     <p class="foot">Создано @bauyrzhanov_12_</p>
   </main>

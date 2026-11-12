@@ -1,14 +1,19 @@
 // при изменении файлов сайта меняй версию, чтобы кэш обновился
-const CACHE = 'habits-v3';
+const CACHE = 'habits-v4';
 const FILES = [
   './',
   './index.html',
   './app.js',
   './manifest.json',
-  '../fonts/unbounded-cyrillic.woff2',
-  '../fonts/unbounded-latin.woff2',
-  '../fonts/onest-cyrillic.woff2',
-  '../fonts/onest-latin.woff2',
+  '../theme.css',
+  '../fonts/oswald-cyrillic.woff2',
+  '../fonts/oswald-latin.woff2',
+  '../fonts/intertight-cyrillic.woff2',
+  '../fonts/intertight-latin.woff2',
+  '../fonts/fira-600-cyrillic.woff2',
+  '../fonts/fira-600-latin.woff2',
+  '../fonts/rc-400-cyrillic.woff2',
+  '../fonts/rc-400-latin.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
