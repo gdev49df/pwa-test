@@ -510,16 +510,30 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
     const draw = () => {
       box.replaceChildren();
-      askLog.forEach((m) => box.append(card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), m.me ? h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t }) : h('div', { style: 'margin-top:8px' }, mdBlock(m.t)))));
+      askLog.forEach((m) => {
+        const fresh = m.fresh; m.fresh = false;
+        let body;
+        if (m.me) body = h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t });
+        else if (m.wait) body = h('div', { class: 'thinking', role: 'status' }, D.logo('logo think'), h('span', { text: 'думаю…' }));
+        else {
+          body = h('div', { class: 'md-wrap', style: 'margin-top:8px' }, mdBlock(m.t));
+          // абзацы ответа проявляются по очереди
+          if (fresh) body.classList.add('md-reveal'), Array.prototype.forEach.call(body.querySelectorAll('.md > *'), (el, i) => el.style.setProperty('--i', Math.min(i, 12)));
+        }
+        const c = card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), body);
+        if (fresh) c.classList.add('rise');
+        box.append(c);
+      });
     };
     let busy = false;
+    const setAnswer = (t) => { const m = askLog[askLog.length - 1]; m.t = t; m.wait = false; m.fresh = true; };
     const ask = (q) => {
       q = String(q || '').trim();
       if (!q || busy) return;
       busy = true; input.value = '';
-      askLog.push({ me: true, t: q }); askLog.push({ me: false, t: 'думаю…' }); draw();
-      D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { askLog[askLog.length - 1].t = r.answer || 'пустой ответ'; })
-        .catch((e) => { askLog[askLog.length - 1].t = e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'; })
+      askLog.push({ me: true, t: q, fresh: true }); askLog.push({ me: false, t: '', wait: true, fresh: true }); draw();
+      D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { setAnswer(r.answer || 'пустой ответ'); })
+        .catch((e) => { setAnswer(e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'); })
         .then(() => { busy = false; draw(); });
     };
     root.append(card('cap-in', input, send));
