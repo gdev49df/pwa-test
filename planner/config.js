@@ -10,7 +10,7 @@ window.DDX_CONFIG = {
   price: { month: 1090, year: 9990 },
 
   // оплата переводом на карту kaspi. когда впишешь номер, он появится на странице оплаты
-  kaspi: { card: '', holder: '' },
+  kaspi: { card: '4400 4303 3938 4411', holder: 'B. Galymzhan' },
 
   // куда писать после оплаты (telegram без @). проверь, что это твой ник
   support: { handle: 'bauyrzhanov_12_' },
