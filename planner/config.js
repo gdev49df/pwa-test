@@ -13,7 +13,7 @@ window.DDX_CONFIG = {
   whatsapp: '77751213271',
 
   // куда писать после оплаты (telegram без @). проверь, что это твой ник
-  support: { handle: 'bauyrzhanov_12_' },
+  support: { handle: 'ddwwks' },
 
   // лимиты бесплатного тарифа из плана
   limits: {
