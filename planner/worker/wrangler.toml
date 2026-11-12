@@ -6,8 +6,8 @@ compatibility_date = "2026-11-01"
 # сайты, которым можно обращаться к воркеру, через запятую
 ALLOWED_ORIGINS = "https://gdev49df.github.io"
 # модели можно поменять здесь
-MODEL_FOOD = "claude-haiku-5-5"
-MODEL_ASK = "claude-sonnet-5-5"
+MODEL_FOOD = "qwen/qwen3.8-27b"
+MODEL_ASK = "llama-3.3-70b-versatile"
 
 # ключ в файл не пишем. добавляется командой:
-#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put GROQ_API_KEY

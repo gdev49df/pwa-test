@@ -1,8 +1,8 @@
-/* прокси для ddx planner: прячет ключ anthropic от браузера.
-   ключ лежит только в секрете воркера ANTHROPIC_API_KEY, в репозитории его нет.
+/* прокси для ddx planner: прячет ключ groq от браузера.
+   ключ лежит только в секрете воркера GROQ_API_KEY, в репозитории его нет.
    два режима: food (фото еды -> блюда и калории) и ask (вопрос по данным пользователя). */
 
-const API = 'https://api.anthropic.com/v1/messages';
+const API = 'https://api.groq.com/openai/v1/chat/completions';
 
 const FOOD_SYSTEM = 'Ты определяешь еду на фото для дневника питания. Отвечай только JSON без пояснений и без markdown: '
   + '{"items":[{"name":"блюдо по-русски","grams":число,"kcal":число}],"note":"короткое замечание или пустая строка"}. '
@@ -26,19 +26,20 @@ function reply(status, data, origin) {
   return new Response(JSON.stringify(data), { status: status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors(origin)) });
 }
 
-async function claude(env, model, system, content, maxTokens) {
-  const r = await fetch(API, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: model, max_tokens: maxTokens, system: system, messages: [{ role: 'user', content: content }] })
-  });
+// groq: формат как у openai chat completions
+async function llm(env, model, system, userContent, maxTokens, json) {
+  const body = { model: model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }] };
+  if (json) body.response_format = { type: 'json_object' };
+  const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.GROQ_API_KEY }, body: JSON.stringify(body) });
   if (!r.ok) {
     let msg = '';
     try { const e = await r.json(); msg = (e.error && e.error.message) || ''; } catch (x) { /* тела нет */ }
-    throw new Error('anthropic ' + r.status + (msg ? ': ' + msg.slice(0, 160) : ''));
+    throw new Error('groq ' + r.status + (msg ? ': ' + msg.slice(0, 160) : ''));
   }
   const j = await r.json();
-  return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+  const text = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+  // у некоторых моделей в ответе есть блок рассуждений, его не показываем
+  return String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }
 
 export default {
@@ -50,7 +51,7 @@ export default {
     if (!allowed.includes(origin)) return new Response(JSON.stringify({ error: 'origin ' + origin + ' не разрешён' }), { status: 403, headers: Object.assign({ 'Content-Type': 'application/json' }, cors(origin || '*')) });
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
     if (req.method !== 'POST') return reply(405, { error: 'method' }, origin);
-    if (!env.ANTHROPIC_API_KEY) return reply(500, { error: 'no key' }, origin);
+    if (!env.GROQ_API_KEY) return reply(500, { error: 'no key', detail: 'в воркере нет секрета GROQ_API_KEY' }, origin);
 
     const raw = await req.text();
     if (raw.length > 600000) return reply(413, { error: 'too big' }, origin);
@@ -61,10 +62,10 @@ export default {
       if (body.mode === 'food') {
         const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
         if (!m) return reply(400, { error: 'image' }, origin);
-        const text = await claude(env, env.MODEL_FOOD || 'claude-haiku-5-5', FOOD_SYSTEM, [
-          { type: 'image', source: { type: 'base64', media_type: 'image/' + m[1], data: m[2] } },
-          { type: 'text', text: 'Что на фото? Верни JSON.' }
-        ], 500);
+        const text = await llm(env, env.MODEL_FOOD || 'qwen/qwen3.8-27b', FOOD_SYSTEM, [
+          { type: 'text', text: 'Что на фото? Верни JSON.' },
+          { type: 'image_url', image_url: { url: body.image } }
+        ], 800, true);
         const j = /\{[\s\S]*\}/.exec(text);
         let out = { items: [], note: '' };
         try { out = JSON.parse(j ? j[0] : text); } catch (e) { return reply(502, { error: 'parse' }, origin); }
@@ -78,7 +79,7 @@ export default {
         const q = String(body.question || '').trim().slice(0, 500);
         const ctx = String(body.context || '').slice(0, 8000);
         if (!q) return reply(400, { error: 'question' }, origin);
-        const answer = await claude(env, env.MODEL_ASK || 'claude-sonnet-5-5', ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700);
+        const answer = await llm(env, env.MODEL_ASK || 'llama-3.3-70b-versatile', ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);
         return reply(200, { answer: answer }, origin);
       }
 
