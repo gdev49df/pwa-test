@@ -1,8 +1,9 @@
 // при изменении файлов сайта меняй версию, чтобы кэш обновился
-const CACHE = 'app-v1';
+const CACHE = 'app-v2';
 const FILES = [
   './',
   './index.html',
+  './app.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
