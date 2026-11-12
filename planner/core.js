@@ -249,6 +249,12 @@
   $('#sheet').addEventListener('click', (e) => { if (e.target === $('#sheet') && !sheetLocked) closeSheet(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden && !sheetLocked) closeSheet(); });
   // клавиатура на iphone закрывает панель снизу, чтобы не прыгали кнопки
+  // высота клавиатуры: чтобы строка ввода в чате ехала вместе с ней
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const kb = () => document.documentElement.style.setProperty('--kb', Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) + 'px');
+    vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); kb();
+  }
   document.addEventListener('focusin', (e) => { if (e.target.matches('input:not([type=checkbox]), textarea')) document.body.classList.add('typing'); });
   document.addEventListener('focusout', () => setTimeout(() => {
     const a = document.activeElement;
