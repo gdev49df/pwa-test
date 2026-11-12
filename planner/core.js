@@ -216,10 +216,11 @@
 
   function usage() {
     const t = today();
-    if (!D.S.usage[t]) D.S.usage = { [t]: { voice: 0, voiceCat: 0, focus: 0, ai: 0 } };
+    if (!D.S.usage[t]) D.S.usage = { [t]: { voice: 0, voiceCat: 0, focus: 0, aiAsk: 0, aiFood: 0 } };
     const u = D.S.usage[t];
     if (u.focus == null) u.focus = 0;
-    if (u.ai == null) u.ai = 0;
+    if (u.aiAsk == null) u.aiAsk = 0;
+    if (u.aiFood == null) u.aiFood = 0;
     return u;
   }
 
@@ -290,7 +291,7 @@
     notes: 'текстовых заметок', tasks: 'активных задач', cats: 'своих категорий', subs: 'подзадач на одну задачу',
     repeats: 'повторяющихся задач', pins: 'закреплённых заметок', moneyMonth: 'записей доходов и расходов в месяц',
     voiceDay: 'голосовых записей в день', voiceCatDay: 'голосовых выборов категории в день', reminders: 'активных напоминаний',
-    focusDay: 'сессий Focus Mode в день', aiDay: 'запросов к ии в день', lists: 'умных списков', habits: 'привычек', statsDays: 'дней статистики'
+    focusDay: 'сессий Focus Mode в день', aiAskDay: 'вопросов к ии в день', aiFoodDay: 'распознаваний еды по фото в день', lists: 'умных списков', habits: 'привычек', statsDays: 'дней статистики'
   };
   // возвращает false, чтобы можно было написать: if (над лимитом) return limitHit(...)
   function limitHit(kind) {
@@ -312,20 +313,55 @@
   /* ---------- ии через воркер: ключа в приложении нет ---------- */
 
   const aiOn = () => !!(C.ai && C.ai.url);
+  const AI_KIND = { ask: ['aiAsk', 'aiAskDay', 'вопросов'], food: ['aiFood', 'aiFoodDay', 'фото'] };
+  const aiCap = (kind) => (isPro() ? C.proAi[kind] : C.limits[AI_KIND[kind][1]]);
+  const aiUsed = (kind) => usage()[AI_KIND[kind][0]] || 0;
+  const aiLeft = (kind) => Math.max(0, aiCap(kind) - aiUsed(kind));
+
+  // анонимный номер устройства: по нему воркер считает лимиты ии
+  function deviceId() {
+    let v = '';
+    try {
+      v = localStorage.getItem('ddx-dev') || '';
+      if (!/^[A-Za-z0-9-]{16,64}$/.test(v)) {
+        v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+        localStorage.setItem('ddx-dev', v);
+      }
+    } catch (e) { /* без памяти лимит считается как у нового устройства */ }
+    return /^[A-Za-z0-9-]{16,64}$/.test(v) ? v : 'nomem' + Math.random().toString(36).slice(2, 14) + '0000000000';
+  }
+
+  function aiLimit(kind) {
+    const pro = isPro();
+    openSheet((panel) => panel.append(
+      label(pro ? 'ии на сегодня' : 'бесплатный тариф'),
+      h('h2', { style: 'margin-top:6px', text: pro ? 'лимит ии на сегодня исчерпан' : 'ии на сегодня закончился' }),
+      h('p', { class: 'cap', text: pro ? 'На Pro до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото еды в день. Завтра счётчик обновится.' :
+        'Бесплатно: ' + C.limits.aiAskDay + ' вопроса и ' + C.limits.aiFoodDay + ' фото еды в день. В Pro до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото в день за ' + fmt(C.price.month) + ' ₸ в месяц.' }),
+      h('div', { class: 'form' },
+        pro ? null : h('button', { class: 'btn solid block', type: 'button', text: 'смотреть тарифы', onclick: () => { closeSheet(); go('subscriptions'); } }),
+        h('button', { class: 'btn block', type: 'button', text: pro ? 'понятно' : 'позже', onclick: closeSheet }))
+    ));
+    return false;
+  }
+
   async function aiCall(body) {
     if (!aiOn()) throw new Error('no-url');
-    if (!isPro() && usage().ai >= C.limits.aiDay) { limitHit('aiDay'); throw new Error('limit'); }
+    const kind = body.mode === 'food' ? 'food' : 'ask';
+    const limitErr = () => { const e = new Error('limit'); e.kind = kind; return e; };
+    if (aiLeft(kind) <= 0) throw limitErr();
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 40000);
     try {
-      const r = await fetch(C.ai.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal });
-      if (!r.ok) {
-        let d = '';
-        try { const e = await r.json(); d = e.detail || e.error || ''; } catch (x) { /* тела нет */ }
-        throw new Error('http ' + r.status + (d ? ' ' + d : ''));
-      }
-      const j = await r.json();
-      usage().ai++; save();
+      const payload = Object.assign({}, body, { device: deviceId(), pro: isPro(), code: isPro() ? (D.S.pro.code || '') : '' });
+      const r = await fetch(C.ai.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctl.signal });
+      let j = null;
+      try { j = await r.json(); } catch (x) { /* тела нет */ }
+      // сервер считает точнее телефона: подгоняем счётчики под его ответ
+      if (j && j.quota) { const u = usage(); u.aiAsk = j.quota.ask.used; u.aiFood = j.quota.food.used; save(); }
+      if (r.status === 429 && j && j.error === 'limit') throw limitErr();
+      if (!r.ok) throw new Error('http ' + r.status + ((j && (j.detail || j.error)) ? ' ' + (j.detail || j.error) : ''));
+      if (!j || !j.quota) { usage()[AI_KIND[kind][0]]++; save(); }
       return j;
     } finally { clearTimeout(to); }
   }
@@ -715,7 +751,7 @@
     dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
-    aiOn, aiCall, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
+    aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
   });
   // Object.assign копирует значение, а не геттер, поэтому маршрут отдаём отдельно
   Object.defineProperty(D, 'route', { get: () => route });

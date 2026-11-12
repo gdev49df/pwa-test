@@ -94,7 +94,7 @@
       const meters = [
         ['задачи', D.activeTasks().length, D.lim('tasks')],
         ['заметки', D.S.notes.filter((n) => !n.archived).length, D.lim('notes')],
-        ['ии сегодня', D.usage().ai, D.C.limits.aiDay]
+        ['ии сегодня', D.aiUsed('ask'), D.aiCap('ask')]
       ];
       root.append(tapCard('span2 pro-card dots', () => go('pro'),
         h('div', { class: 'tile-head' }, label('ddx pro'), h('span', { class: 'tag hot', text: 'PRO' })),
@@ -653,8 +653,11 @@
           if (!r.items || !r.items.length) { est.textContent = r.note || 'еды не видно, впиши сам'; return; }
           text.value = r.items.map((i) => i.name + (i.grams ? ' ' + i.grams + ' г' : '')).join(', ');
           kcal.value = String(r.items.reduce((a, i) => a + i.kcal, 0));
-          est.textContent = '≈ оценка по фото, проверь и поправь' + (r.note ? '. ' + r.note : '');
-        }).catch((e) => { if (e.message !== 'limit') toast('не удалось распознать: ' + e.message); estimate(); });
+          est.textContent = '≈ оценка по фото, проверь и поправь' + (r.note ? '. ' + r.note : '') + ' · осталось ' + D.aiLeft('food') + ' фото сегодня';
+        }).catch((e) => {
+          if (e.message === 'limit') { estimate(); est.textContent = 'лимит ии на сегодня исчерпан, впиши блюдо сам' + (D.isPro() ? '' : '. В Pro до ' + C.proAi.food + ' фото в день'); }
+          else { toast('не удалось распознать: ' + e.message); estimate(); }
+        });
       } else setTimeout(() => text.focus(), 350);
     });
   }

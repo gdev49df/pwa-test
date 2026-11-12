@@ -195,6 +195,61 @@ async function pushRoute(req, env, path, origin) {
   return reply(404, { error: 'path' }, origin);
 }
 
+/* ================= лимиты ии на сервере =================
+   клиентским лимитам верить нельзя, поэтому считаем запросы здесь: отдельно вопросы и фото еды, по устройству и по дню.
+   день считается по времени астаны (UTC+5, переменная TZ_OFFSET). нужен KV. */
+
+const FREE_Q = { ask: 3, food: 2 };
+const PRO_Q = { ask: 40, food: 15 };
+const GLOBAL_DAY = 1500;   // общий предохранитель на все запросы за день, чтобы ключ groq не улетел в минус
+
+const dayKey = (env) => new Date(Date.now() + Number(env.TZ_OFFSET || 5) * 3600000).toISOString().slice(0, 10);
+const num = (v) => Math.max(0, parseInt(v, 10) || 0);
+
+async function sha256hex(s) {
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)))).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// pro: если задан список кодов PRO_CODES (хеш или хеш:дни через запятую), проверяем код и привязываем его к первому устройству.
+// без списка верим приложению, но лимиты pro всё равно ограничены
+async function isProDevice(env, body, device) {
+  const list = String(env.PRO_CODES || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!list.length) return body.pro === true;
+  const code = String(body.code || '').slice(0, 64);
+  if (!code) return false;
+  const hash = await sha256hex(code);
+  const ent = list.map((x) => x.split(':')).find((x) => x[0] === hash);
+  if (!ent) return false;
+  const days = Number(ent[1]) || 31;
+  const key = 'p:' + hash;
+  let rec = null;
+  try { rec = JSON.parse(await env.KV.get(key)); } catch (e) { rec = null; }
+  if (!rec) { rec = { device: device, at: Date.now() }; await env.KV.put(key, JSON.stringify(rec)); }
+  return rec.device === device && Date.now() < rec.at + days * 86400000;
+}
+
+// списывает одну попытку. возвращает { info, refund } или { status, payload }
+async function takeQuota(env, body, kind) {
+  if (!env.KV) return { info: null, refund: async () => {} };
+  const device = String(body.device || '');
+  if (!/^[A-Za-z0-9-]{16,64}$/.test(device)) return { status: 400, payload: { error: 'device' } };
+  const day = dayKey(env);
+  const pro = await isProDevice(env, body, device);
+  const cap = (pro ? PRO_Q : FREE_Q);
+  const qk = 'q:' + device + ':' + day, gk = 'g:' + day;
+  let q = { ask: 0, food: 0 };
+  try { q = Object.assign(q, JSON.parse(await env.KV.get(qk))); } catch (e) { /* первый запрос за день */ }
+  const info = () => ({ pro: pro, ask: { used: q.ask, limit: cap.ask }, food: { used: q.food, limit: cap.food } });
+  if (q[kind] >= cap[kind]) return { status: 429, payload: { error: 'limit', kind: kind, quota: info() } };
+  const g = num(await env.KV.get(gk));
+  if (g >= GLOBAL_DAY) return { status: 503, payload: { error: 'busy', detail: 'на сегодня общий лимит ии исчерпан, попробуй завтра' } };
+  q[kind]++;
+  await Promise.all([env.KV.put(qk, JSON.stringify(q), { expirationTtl: 172800 }), env.KV.put(gk, String(g + 1), { expirationTtl: 172800 })]);
+  // если запрос к модели не удался, попытку возвращаем
+  const refund = async () => { try { q[kind] = Math.max(0, q[kind] - 1); await env.KV.put(qk, JSON.stringify(q), { expirationTtl: 172800 }); } catch (e) { /* не страшно */ } };
+  return { info: info, refund: refund };
+}
+
 export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || '';
@@ -215,33 +270,41 @@ export default {
     let body;
     try { body = JSON.parse(raw); } catch (e) { return reply(400, { error: 'json' }, origin); }
 
+    let refund = async () => {};
     try {
       if (body.mode === 'food') {
         const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
         if (!m) return reply(400, { error: 'image' }, origin);
+        const tq = await takeQuota(env, body, 'food');
+        if (tq.status) return reply(tq.status, tq.payload, origin);
+        refund = tq.refund;
         const text = await llm(env, list(env.MODEL_FOOD, FOOD_MODELS), FOOD_SYSTEM, [
           { type: 'text', text: 'Что на фото? Верни JSON.' },
           { type: 'image_url', image_url: { url: body.image } }
         ], 800, true);
         const j = /\{[\s\S]*\}/.exec(text);
         let out = { items: [], note: '' };
-        try { out = JSON.parse(j ? j[0] : text); } catch (e) { return reply(502, { error: 'parse' }, origin); }
+        try { out = JSON.parse(j ? j[0] : text); } catch (e) { await refund(); return reply(502, { error: 'parse' }, origin); }
         const items = (Array.isArray(out.items) ? out.items : []).slice(0, 8).map((x) => ({
           name: String(x.name || '').slice(0, 60), grams: Math.max(0, Math.round(Number(x.grams) || 0)), kcal: Math.max(0, Math.round(Number(x.kcal) || 0))
         })).filter((x) => x.name);
-        return reply(200, { items: items, note: String(out.note || '').slice(0, 160) }, origin);
+        return reply(200, { items: items, note: String(out.note || '').slice(0, 160), quota: tq.info ? tq.info() : null }, origin);
       }
 
       if (body.mode === 'ask') {
         const q = String(body.question || '').trim().slice(0, 500);
         const ctx = String(body.context || '').slice(0, 8000);
         if (!q) return reply(400, { error: 'question' }, origin);
+        const tq = await takeQuota(env, body, 'ask');
+        if (tq.status) return reply(tq.status, tq.payload, origin);
+        refund = tq.refund;
         const answer = await llm(env, list(env.MODEL_ASK, ASK_MODELS), ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);
-        return reply(200, { answer: answer }, origin);
+        return reply(200, { answer: answer, quota: tq.info ? tq.info() : null }, origin);
       }
 
       return reply(400, { error: 'mode' }, origin);
     } catch (e) {
+      await refund();
       return reply(502, { error: 'upstream', detail: String(e.message || e).slice(0, 220) }, origin);
     }
   },

@@ -573,9 +573,13 @@
       busy = true; input.value = ''; if (chips) chips.remove();
       askLog.push({ me: true, t: q, fresh: true }); askLog.push({ me: false, t: '', wait: true, fresh: true }); draw();
       D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { setAnswer(r.answer || 'пустой ответ'); })
-        .catch((e) => { setAnswer(e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'); })
-        .then(() => { busy = false; draw(); });
+        .catch((e) => { if (e.message === 'limit') D.aiLimit('ask'); setAnswer(e.message === 'limit' ? 'лимит ии на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'); })
+        .then(() => { busy = false; showLeft(); draw(); });
     };
+    const left = h('p', { class: 'cap ai-left', style: 'margin:0 6px' });
+    const showLeft = () => { const n = D.aiLeft('ask'); left.textContent = 'Вопросов к ИИ на сегодня: осталось ' + n + ' из ' + D.aiCap('ask') + (D.isPro() ? '' : '. В Pro до ' + C.proAi.ask + ' в день'); left.classList.toggle('warn', n === 0); };
+    showLeft();
+    root.append(left);
     root.append(h('p', { class: 'cap', style: 'margin:0 6px', text: 'Для ответа задачи, траты, еда и последние заметки отправляются на сервер ИИ. Остальное хранится только на телефоне.' }));
     const chips = !askLog.length ? h('div', { class: 'chips scroll' }, ASK_HINTS.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => ask(q) }))) : null;
     if (chips) root.append(chips);
@@ -672,7 +676,7 @@
     const yearFull = C.price.month * 12;
     const off = Math.round((1 - C.price.year / yearFull) * 100);
     root.append(card('', label('бесплатно'), h('p', { class: 'num sm' }, '0', h('small', { text: '₸' })), h('ul', { class: 'plan' }, C.freePlan.map((f) => h('li', { text: f })))));
-    const perks = ['Голос без лимитов', 'Безлимит на задачи, заметки и повторы', 'Сколько угодно напоминаний и привычек', 'Статистика за 30 и 90 дней', 'ИИ без дневного лимита'];
+    const perks = ['Голос без лимитов', 'Безлимит на задачи, заметки и повторы', 'Сколько угодно напоминаний и привычек', 'Статистика за 30 и 90 дней', 'ИИ: до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото в день'];
     const perkList = () => h('ul', { class: 'plan' }, perks.map((f) => h('li', { text: f })));
     root.append(card('dots plan-card', label('pro на месяц'),
       h('p', { class: 'num' }, fmt(C.price.month), h('small', { text: '₸ в месяц' })),
@@ -720,6 +724,7 @@
       if (S.pro.used.includes(hash)) { msg.textContent = 'Этот код уже активирован на этом устройстве.'; return; }
       S.pro.until = Math.max(Date.now(), S.pro.until) + days * 86400000;
       S.pro.used.push(hash);
+      S.pro.code = norm;   // воркер проверит код и привяжет ии-лимиты pro к этому устройству
       save(); toast('pro активирован'); refresh();
     };
     code.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); activate(); } });
