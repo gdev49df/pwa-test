@@ -7,14 +7,14 @@
   src: url(fonts/inter-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 :root {
-  --bg: #111112;
-  --bg2: #171719;
-  --card: #202022;
-  --card2: #252527;
+  --bg: #08080a;
+  --bg2: #0e0e10;
+  --card: #141416;
+  --card2: #19191b;
   --ink: #f2f2f2;
   --mute: #77777c;
   --mute2: #545458;
-  --line: rgba(255, 255, 255, .09);
+  --line: rgba(255, 255, 255, .075);
   --line-top: rgba(255, 255, 255, .2);
   --silver: #d4d4d9;
   --paper: #ececf0;
@@ -31,7 +31,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: v
 body {
   min-height: 100dvh; font-size: 16px; line-height: 1.4; font-weight: 400; -webkit-text-size-adjust: 100%;
   font-feature-settings: "cv11", "ss01";
-  background: radial-gradient(120% 50% at 50% -8%, #1d1d20 0%, rgba(17, 17, 18, 0) 62%), var(--bg);
+  background: radial-gradient(120% 50% at 50% -8%, #121214 0%, rgba(8, 8, 10, 0) 62%), var(--bg);
   background-attachment: fixed;
 }
 .grain {
@@ -308,7 +308,7 @@ a.btn { display: grid; place-items: center; text-decoration: none; }
 .fab {
   position: absolute; left: 50%; top: 50%; z-index: 2; width: 92px; height: 92px; margin: -46px 0 0 -46px; padding: 0;
   display: grid; place-items: center; border-radius: 50%; color: #8d8d93; overflow: hidden;
-  background: radial-gradient(circle at 50% 35%, #1d1d20 0%, #111112 72%);
+  background: radial-gradient(circle at 50% 35%, #131315 0%, #08080a 72%);
   border: 6px solid #0c0c0d; box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 14px 30px rgba(0, 0, 0, .55);
   transition: transform .54s var(--ease), box-shadow 1.08s, background 1.08s, color .72s;
 }
