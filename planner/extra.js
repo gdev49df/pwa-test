@@ -24,78 +24,98 @@
   }
 
   function pCalendar(p) {
-    const root = h('div', { class: 'stack' });
+    const root = h('div', { class: 'stack cal2' });
     if (/^\d{4}-\d{2}-\d{2}$/.test(p || '')) { calSel = p; calMonth = L.fromKey(p); }
     if (!calSel) calSel = today();
     if (!calMonth) calMonth = L.fromKey(calSel);
     const sel = L.fromKey(calSel);
-
-    root.append(chips([['month', 'месяц'], ['week', 'неделя'], ['day', 'день']], calView, (k) => { calView = k; refresh(); }));
-
     const pick = (k) => { calSel = k; calMonth = L.fromKey(k); refresh(); };
+    const ago = (n) => L.dkey(L.addDays(sel, n));
 
+    // переключатель вида
+    root.append(h('div', { class: 'cal-seg', role: 'tablist' }, [['month', 'месяц'], ['week', 'неделя'], ['day', 'день']].map((v) =>
+      h('button', { class: 'cal-seg-b' + (calView === v[0] ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': calView === v[0] ? 'true' : 'false', text: v[1], onclick: () => { calView = v[0]; refresh(); } }))));
+
+    // заголовок периода и стрелки
+    const y = calMonth.getFullYear(), m = calMonth.getMonth();
+    const ws = L.weekStart(sel), we = L.addDays(ws, 6);
+    let big, small, prev, next, hasToday;
     if (calView === 'month') {
-      const y = calMonth.getFullYear(), m = calMonth.getMonth();
-      const grid = h('div', { class: 'cal' }, ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => h('span', { class: 'wd', text: w })));
+      big = L.cap(D.MONTHS_NOM[m]); small = String(y);
+      prev = () => { calMonth = new Date(y, m - 1, 1); calSel = L.dkey(calMonth); refresh(); };
+      next = () => { calMonth = new Date(y, m + 1, 1); calSel = L.dkey(calMonth); refresh(); };
+      hasToday = L.fromKey(today()).getMonth() === m && L.fromKey(today()).getFullYear() === y;
+    } else if (calView === 'week') {
+      big = ws.getDate() + ' – ' + we.getDate(); small = D.MON_SHORT[we.getMonth()] + ' ' + we.getFullYear();
+      prev = () => pick(ago(-7)); next = () => pick(ago(7));
+      hasToday = today() >= L.dkey(ws) && today() <= L.dkey(we);
+    } else {
+      big = L.cap(D.WEEKDAYS[sel.getDay()]); small = sel.getDate() + ' ' + D.MONTHS[sel.getMonth()];
+      prev = () => pick(ago(-1)); next = () => pick(ago(1));
+      hasToday = calSel === today();
+    }
+    root.append(h('div', { class: 'cal-top' },
+      h('div', { class: 'cal-title' }, h('span', { class: 'cal-big', text: big }), h('span', { class: 'cal-small', text: small })),
+      h('div', { class: 'cal-nav' },
+        hasToday ? null : h('button', { class: 'cal-today', type: 'button', text: 'сегодня', onclick: () => pick(today()) }),
+        h('button', { class: 'round-btn', type: 'button', 'aria-label': 'назад', onclick: prev }, icon('left')),
+        h('button', { class: 'round-btn', type: 'button', 'aria-label': 'вперёд', onclick: next }, icon('right')))));
+
+    // дни
+    const cell = (d, out) => {
+      const k = L.dkey(d), n = itemsOn(k).length;
+      return h('button', {
+        class: 'cd' + (out ? ' out' : '') + (k === today() ? ' today' : '') + (k === calSel ? ' sel' : '') + (n ? ' has' : '') + ([0, 6].includes(d.getDay()) ? ' we' : ''), type: 'button',
+        'aria-label': d.getDate() + ' ' + D.MONTHS[d.getMonth()] + ', ' + n + ' ' + plural(n, 'дело', 'дела', 'дел'), onclick: () => pick(k)
+      }, h('span', { class: 'n', text: String(d.getDate()) }), h('span', { class: 'marks' }, Array.from({ length: Math.min(3, n) }, () => h('i'))));
+    };
+    const grid = h('div', { class: 'cal-grid' }, ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => h('span', { class: 'wd', text: w })));
+    if (calView === 'month') {
       const start = L.weekStart(new Date(y, m, 1));
       for (let i = 0; i < 42; i++) {
-        const d = L.addDays(start, i), k = L.dkey(d);
+        const d = L.addDays(start, i);
         if (i >= 35 && d.getMonth() !== m) break;
-        const n = itemsOn(k).length;
-        grid.append(h('button', {
-          class: 'day' + (d.getMonth() !== m ? ' out' : '') + (k === today() ? ' today' : '') + (k === calSel ? ' sel' : ''), type: 'button',
-          'aria-label': d.getDate() + ' ' + D.MONTHS[d.getMonth()] + ', ' + n + ' ' + plural(n, 'дело', 'дела', 'дел'), onclick: () => pick(k)
-        }, String(d.getDate()), n ? h('span', { class: 'marks' }, Array.from({ length: Math.min(3, n) }, () => h('i'))) : null));
+        grid.append(cell(d, d.getMonth() !== m));
       }
-      root.append(card('',
-        h('div', { class: 'cal-head' },
-          h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'прошлый месяц', onclick: () => { calMonth = new Date(y, m - 1, 1); refresh(); } }, icon('left')),
-          h('p', { class: 'lead', text: D.MONTHS_NOM[m] + ' ' + y }),
-          h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'следующий месяц', onclick: () => { calMonth = new Date(y, m + 1, 1); refresh(); } }, icon('right'))),
-        grid));
     } else {
-      const ws = L.weekStart(sel);
-      const strip = h('div', { class: 'week-strip' });
-      for (let i = 0; i < 7; i++) {
-        const d = L.addDays(ws, i), k = L.dkey(d), n = itemsOn(k).length;
-        strip.append(h('button', { class: 'day' + (k === today() ? ' today' : '') + (k === calSel ? ' sel' : ''), type: 'button', onclick: () => pick(k) },
-          h('small', { text: L.WD_SHORT[d.getDay()] }), String(d.getDate()), n ? h('span', { class: 'marks' }, Array.from({ length: Math.min(3, n) }, () => h('i'))) : null));
-      }
-      root.append(card('',
-        h('div', { class: 'cal-head' },
-          h('button', { class: 'icon-btn', type: 'button', 'aria-label': calView === 'week' ? 'прошлая неделя' : 'вчера', onclick: () => pick(L.dkey(L.addDays(sel, calView === 'week' ? -7 : -1))) }, icon('left')),
-          h('p', { class: 'lead', text: calView === 'week' ? ws.getDate() + ' ' + D.MON_SHORT[ws.getMonth()] + ' – ' + L.addDays(ws, 6).getDate() + ' ' + D.MON_SHORT[L.addDays(ws, 6).getMonth()] : D.WEEKDAYS[sel.getDay()] }),
-          h('button', { class: 'icon-btn', type: 'button', 'aria-label': calView === 'week' ? 'следующая неделя' : 'завтра', onclick: () => pick(L.dkey(L.addDays(sel, calView === 'week' ? 7 : 1))) }, icon('right'))),
-        strip));
+      for (let i = 0; i < 7; i++) grid.append(cell(L.addDays(ws, i), false));
     }
+    root.append(grid);
 
+    // выбранный день: большое число и лента дел
     const items = itemsOn(calSel);
-    root.append(section(D.dateLabel(calSel) + (calSel === today() || calSel === tomorrow() ? ', ' + sel.getDate() + ' ' + D.MONTHS[sel.getMonth()] : ''),
-      h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: '+ добавить', onclick: () => D.taskSheet(null, { due: calSel }) })));
-    if (!items.length) {
-      root.append(empty('свободный день', 'Нажми «добавить» или скажи в микрофон: «встреча с Асетом ' + (calSel === tomorrow() ? 'завтра' : 'в пятницу') + ' в 15:00».'));
-    } else if (calView === 'day') {
-      root.append(card('', items.map((t) => h('div', { class: 'hour tap', onclick: () => (t.ghost ? toast('это будущий повтор задачи') : D.taskSheet(t)) },
-        h('span', { class: 'h', text: t.time || 'весь день' }),
-        h('div', { class: 'item-body' + (t.done ? ' done' : '') }, h('p', { class: 'item-title', text: t.title }),
-          h('p', { class: 'item-meta', text: [t.kind === 'meeting' ? 'встреча' : 'задача', t.ghost ? 'повтор' : '', t.place].filter(Boolean).join(' · ') }))))));
+    const nn = items.length;
+    root.append(h('div', { class: 'cal-day-head' },
+      h('span', { class: 'cal-num', text: String(sel.getDate()) }),
+      h('div', { class: 'cal-day-txt' },
+        h('p', { class: 'cal-wd', text: L.cap(D.WEEKDAYS[sel.getDay()]) + (calSel === today() ? ', сегодня' : calSel === tomorrow() ? ', завтра' : '') }),
+        h('p', { class: 'cal-cnt', text: D.MONTHS[sel.getMonth()] + ' · ' + (nn ? nn + ' ' + plural(nn, 'дело', 'дела', 'дел') : 'свободно') })),
+      h('button', { class: 'round-btn add', type: 'button', 'aria-label': 'добавить', onclick: () => D.taskSheet(null, { due: calSel }) }, icon('plus'))));
+
+    if (!nn) {
+      root.append(empty('свободный день', 'Нажми «+» или скажи в микрофон: «встреча с Асетом ' + (calSel === tomorrow() ? 'завтра' : 'в пятницу') + ' в 15:00».'));
     } else {
-      root.append(card('', items.map((t) => h('div', { class: 'item' + (t.done ? ' done' : '') },
-        h('button', { class: 'check' + (t.done ? ' on' : ''), type: 'button', disabled: t.ghost, style: t.ghost ? 'opacity:.35' : '', 'aria-label': 'выполнить: ' + t.title, onclick: () => { D.toggleTask(t); refresh(); } }),
-        h('div', { class: 'item-body tap', onclick: () => (t.ghost ? toast('это будущий повтор задачи') : D.taskSheet(t)) },
-          h('p', { class: 'item-title', text: t.title }),
-          h('p', { class: 'item-meta', text: [t.time, t.kind === 'meeting' ? 'встреча' : '', t.ghost ? L.repeatLabel(t.repeat) : '', t.place].filter(Boolean).join(' · ') || 'весь день' }))))));
+      root.append(h('div', { class: 'tl' }, items.map((t) => h('div', { class: 'tl-row' + (t.done ? ' done' : '') },
+        h('span', { class: 'tl-time', text: t.time || 'весь день' }),
+        h('span', { class: 'tl-dot' + (t.kind === 'meeting' ? ' m' : '') }),
+        h('div', { class: 'tl-card tap', onclick: () => (t.ghost ? toast('это будущий повтор задачи') : D.taskSheet(t)) },
+          h('div', { class: 'tl-body' },
+            h('p', { class: 'item-title', text: t.title }),
+            h('p', { class: 'item-meta', text: [t.kind === 'meeting' ? 'встреча' : '', t.ghost ? L.repeatLabel(t.repeat) : '', t.place].filter(Boolean).join(' · ') || (t.kind === 'meeting' ? 'встреча' : 'задача') })),
+          h('button', { class: 'check' + (t.done ? ' on' : ''), type: 'button', disabled: t.ghost, style: t.ghost ? 'opacity:.35' : '', 'aria-label': 'выполнить: ' + t.title,
+            onclick: (ev) => { ev.stopPropagation(); D.toggleTask(t); refresh(); } }))))));
     }
 
     // траты и еда в этот день
     const k = calSel;
-    const spent = D.S.money.filter((m) => m.kind === 'exp' && L.dkey(new Date(m.t)) === k).reduce((a, m) => a + m.amount, 0);
-    const kc = D.S.meals.filter((m) => L.dkey(new Date(m.t)) === k).reduce((a, m) => a + m.kcal, 0);
+    const spent = D.S.money.filter((x) => x.kind === 'exp' && L.dkey(new Date(x.t)) === k).reduce((acc, x) => acc + x.amount, 0);
+    const kc = D.S.meals.filter((x) => L.dkey(new Date(x.t)) === k).reduce((acc, x) => acc + x.kcal, 0);
     if (spent || kc) root.append(card('flat', h('div', { class: 'grid' },
       h('div', null, label('потрачено'), h('p', { class: 'lead', text: fmt(spent) + ' ₸' })),
       h('div', null, label('калории'), h('p', { class: 'lead', text: fmt(kc) + ' ккал' })))));
     return root;
   }
+
 
   /* ================= focus mode ================= */
 
