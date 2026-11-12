@@ -215,6 +215,7 @@
   }
 
   const isPro = () => D.S.pro.until > Date.now();
+  const isLife = () => D.S.pro.until - Date.now() > 20 * 365 * 86400000;   // код Founder Lifetime даёт 100 лет
   const lim = (k) => (isPro() ? Infinity : C.limits[k]);
 
   function usage() {
@@ -319,7 +320,7 @@
   const isInstalled = () => { try { return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)); } catch (e) { return false; } };
   const aiOn = () => !!(C.ai && C.ai.url);
   const AI_KIND = { ask: ['aiAsk', 'aiAskDay', 'вопросов'], food: ['aiFood', 'aiFoodDay', 'фото'] };
-  const aiCap = (kind) => (isPro() ? C.proAi[kind] : C.limits[AI_KIND[kind][1]]);
+  const aiCap = (kind) => (isLife() ? C.lifeAi[kind] : isPro() ? C.proAi[kind] : C.limits[AI_KIND[kind][1]]);
   const aiUsed = (kind) => usage()[AI_KIND[kind][0]] || 0;
   const aiLeft = (kind) => Math.max(0, aiCap(kind) - aiUsed(kind));
 
@@ -341,7 +342,7 @@
     openSheet((panel) => panel.append(
       label(pro ? 'ии на сегодня' : 'бесплатный тариф'),
       h('h2', { style: 'margin-top:6px', text: pro ? 'лимит ии на сегодня исчерпан' : 'ии на сегодня закончился' }),
-      h('p', { class: 'cap', text: pro ? 'На Pro до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото еды в день. Завтра счётчик обновится.' :
+      h('p', { class: 'cap', text: isLife() ? 'Это очень много вопросов за день. Попробуй завтра.' : pro ? 'На Pro до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото еды в день. Завтра счётчик обновится.' :
         'Бесплатно: ' + C.limits.aiAskDay + ' вопроса и ' + C.limits.aiFoodDay + ' фото еды в день. В Pro до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото в день за ' + fmt(C.price.month) + ' ₸ в месяц.' }),
       h('div', { class: 'form' },
         pro ? null : h('button', { class: 'btn solid block', type: 'button', text: 'смотреть тарифы', onclick: () => { closeSheet(); go('subscriptions'); } }),
@@ -753,7 +754,7 @@
   Object.assign(D, {
     MONTHS, MONTHS_NOM, MON_SHORT, WEEKDAYS, PRI_LABEL, LIST_NAMES, HUBS, HUB_NAME, TAB_LABEL,
     $, h, icon, logo, card, tapCard, label, empty, section, chips, pad, today, tomorrow, fmt, uid, plural, hm,
-    dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
+    dateLabel, dueLabel, stampOf, ago, save, isPro, isLife, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
     isInstalled, aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank

@@ -577,7 +577,7 @@
         .then(() => { busy = false; showLeft(); draw(); });
     };
     const left = h('p', { class: 'cap ai-left', style: 'margin:0 6px' });
-    const showLeft = () => { const n = D.aiLeft('ask'); left.textContent = 'Вопросов к ИИ на сегодня: осталось ' + n + ' из ' + D.aiCap('ask') + (D.isPro() ? '' : '. В Pro до ' + C.proAi.ask + ' в день'); left.classList.toggle('warn', n === 0); };
+    const showLeft = () => { const n = D.aiLeft('ask'); if (D.isLife()) { left.textContent = 'Вопросы к ИИ: без ограничений'; left.classList.remove('warn'); return; } left.textContent = 'Вопросов к ИИ на сегодня: осталось ' + n + ' из ' + D.aiCap('ask') + (D.isPro() ? '' : '. В Pro до ' + C.proAi.ask + ' в день'); left.classList.toggle('warn', n === 0); };
     showLeft();
     root.append(left);
     root.append(h('p', { class: 'cap', style: 'margin:0 6px', text: 'Для ответа задачи, траты, еда и последние заметки отправляются на сервер ИИ. Остальное хранится только на телефоне.' }));
@@ -646,7 +646,7 @@
       ['search', 'Поиск', 'по всем записям'],
       ['reset', 'Daily Reset', 'разобрать хвосты дня'],
       ['archive', 'Архив', 'выполненное и старые заметки'],
-      ['pro', 'DDX Pro', D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф']
+      ['pro', 'DDX Pro', D.isLife() ? 'Founder Lifetime · навсегда' : D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф']
     ].filter(Boolean);
     root.append(label('инструменты'));
     tools.forEach((r, i) => root.append(tapCard('menu-row', () => go(r[0]),
@@ -671,7 +671,7 @@
       ['search', 'Поиск', 'по всем записям'],
       ['reset', 'Daily Reset', 'разобрать хвосты дня'],
       ['archive', 'Архив', 'выполненное и старые заметки'],
-      ['pro', 'DDX Pro', D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф'],
+      ['pro', 'DDX Pro', D.isLife() ? 'Founder Lifetime · навсегда' : D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф'],
       ['subscriptions', 'Тарифы', fmt(C.price.month) + ' ₸ в месяц'],
       ['pay', 'Оплата', 'WhatsApp и код активации'],
       ['prefs', 'Профиль и цели', 'имя, цели, уведомления, копия данных'],
@@ -694,7 +694,7 @@
     const S = D.S, root = h('div', { class: 'stack' });
     root.append(card('dots', label('статус'),
       h('p', { class: 'num', text: D.isPro() ? 'Pro' : 'Free' }),
-      h('p', { class: 'cap', text: D.isPro() ? 'Подписка действует до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') + '. Все ограничения сняты.' : 'Бесплатный тариф с лимитами. Pro снимает все ограничения приложения.' })));
+      h('p', { class: 'cap', text: D.isPro() ? D.isLife() ? 'Founder Lifetime: Pro навсегда, без лимитов.' : 'Подписка действует до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') + '. Все ограничения сняты.' : 'Бесплатный тариф с лимитами. Pro снимает все ограничения приложения.' })));
     root.append(card('', label('что даёт pro'), h('ul', { class: 'plan' },
       ['Голос без лимитов: записи любой длины, сколько угодно в день', 'Безлимит на заметки, задачи, категории, подзадачи и повторы',
         'Сколько угодно напоминаний, умных списков и привычек', 'Focus Mode без ограничения сессий', 'Финансы без лимита записей',
@@ -713,12 +713,13 @@
       h('div', { class: 'sub-brand' }, h('span', { class: 'sub-logo' }, icon('spark')), h('span', { text: 'DDX PRO' })),
       h('h2', { text: 'Вся жизнь — без лимитов' }),
       h('p', { text: 'Голос, фото-еда, дашборды и «Спроси свою жизнь» — без ограничений.' })));
-    const perks = ['Безлимит: голос, задачи, заметки, привычки и напоминания', 'ИИ: до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото-еды в день', 'Статистика за 30 и 90 дней, полная история', 'Ранний доступ к новым функциям'];
+    const perks = ['Безлимит: голос, задачи, заметки, привычки и напоминания', 'ИИ: до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото-еды в день', 'Статистика за 30 и 90 дней, полная история', 'Ранний доступ к новым функциям', 'Founder Lifetime: Pro навсегда и ИИ без лимитов'];
     root.append(card('', label('что открывает pro'),
       h('ul', { class: 'perks' }, perks.map((t) => h('li', null, icon('check'), h('span', { text: t }))))));
     const plans = [
       ['year', 'Pro · год', '≈' + fmt(Math.round(C.price.year / 12)) + ' ₸/мес · −' + off + '%', C.price.year],
-      ['month', 'Pro · месяц', 'в месяц', C.price.month]
+      ['month', 'Pro · месяц', 'в месяц', C.price.month],
+      ['life', 'Founder Lifetime', 'разово · навсегда · без лимитов', C.price.life]
     ];
     const list = h('div', { class: 'plans' });
     const draw = () => list.replaceChildren(...plans.map((p) => h('button', { type: 'button', class: 'plan-opt' + (payPlan === p[0] ? ' on' : ''), 'aria-pressed': String(payPlan === p[0]), onclick: () => { payPlan = p[0]; draw(); } },
@@ -742,10 +743,10 @@
     const amountEl = h('p', { class: 'num sm' });
     const setAmount = () => amountEl.replaceChildren(fmt(C.price[payPlan]), h('small', { text: '₸' }));
     setAmount();
-    const wa = () => 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Привет! Хочу DDX Pro на ' + (payPlan === 'year' ? 'год' : 'месяц') + ' (' + fmt(C.price[payPlan]) + ' ₸).');
+    const wa = () => 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Привет! Хочу DDX ' + (payPlan === 'life' ? 'Pro навсегда (Founder Lifetime)' : 'Pro на ' + (payPlan === 'year' ? 'год' : 'месяц')) + ' (' + fmt(C.price[payPlan]) + ' ₸).');
     const waBtn = h('a', { class: 'btn solid block', style: 'margin-top:14px', href: wa(), target: '_blank', rel: 'noopener', text: 'написать в WhatsApp' });
     root.append(card('dots', label('оплата pro'),
-      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год']], payPlan, (x) => { payPlan = x; setAmount(); waBtn.href = wa(); })),
+      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год'], ['life', 'навсегда']], payPlan, (x) => { payPlan = x; setAmount(); waBtn.href = wa(); })),
       amountEl, waBtn));
     root.append(card('', label('как это работает'),
       h('ol', { class: 'steps' }, h('li', { text: 'Нажми «написать в WhatsApp». Сообщение с тарифом уже готово.' }), h('li', { text: 'В ответ пришлём реквизиты. Оплати и отправь чек.' }), h('li', { text: 'Получи код активации и введи его ниже.' })),
@@ -767,7 +768,7 @@
     };
     code.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); activate(); } });
     root.append(card('', label('код активации'),
-      D.isPro() ? h('p', { class: 'cap', text: 'Pro действует до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') + '. Новый код продлит подписку.' }) : null,
+      D.isPro() ? h('p', { class: 'cap', text: D.isLife() ? 'У тебя Founder Lifetime: Pro навсегда.' : 'Pro действует до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') + '. Новый код продлит подписку.' }) : null,
       h('div', { class: 'line', style: 'margin-top:12px' }, code, h('button', { class: 'btn solid', type: 'button', text: 'активировать', onclick: activate })), msg));
     return root;
   }

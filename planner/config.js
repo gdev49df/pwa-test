@@ -7,7 +7,7 @@ window.DDX_CONFIG = {
   ai: { url: 'https://ddx-ai.wsmp.workers.dev/' },
 
   // цены в тенге
-  price: { month: 1090, year: 9990 },
+  price: { month: 1090, year: 9990, life: 17990 },
 
   // оплата: человек пишет в whatsapp, реквизиты и код активации присылают там
   whatsapp: '77751213271',
@@ -40,6 +40,7 @@ window.DDX_CONFIG = {
 
   // ии на pro: щедро, но не безгранично, чтобы расходы на модель были под контролем
   proAi: { ask: 40, food: 15 },
+  lifeAi: { ask: 1000, food: 300 },   // Founder Lifetime: на деле без лимитов, потолок только от случайных зацикливаний
 
   // что показывать в списке бесплатного тарифа
   freePlan: [
@@ -138,6 +139,11 @@ window.DDX_CONFIG = {
     '19ccf615ba1659560efedc2f1bd71dfaf65035c5ef88a95d8ea8f2f3d0ea3187': 366,
     'c045b34e900fbd0b536d8f31e2f7bd5f092d39584f54f00ddd347e206fc3907b': 366,
     '201ef9aa75809aa222c55019f4ecf17d50c0d3a3fd2b440617ae05e9306766e6': 366,
-    'cae053c064bdb4917b84895b0060b5971b4e2bae05b851d595fd34cf97ea0849': 366
+    'cae053c064bdb4917b84895b0060b5971b4e2bae05b851d595fd34cf97ea0849': 366,
+    '084992b99d11b16e8c4c86259d35b6573555f5010e55384177029a45a3d63d53': 36500,
+    '4a814e3c22554b9e3c24162725e7af59b9e59ccb72b33c67cadc8f5d306602de': 36500,
+    '4de2b9b084a8e00950fb9d0e3c3a1adb1d638237728ce3ef458c5cda21fe1385': 36500,
+    '2f9b864ef5e1fd3ad0a8ceaf680d98a864ce191743a3335bfd4d4ae4878856ac': 36500,
+    '35cfa31b4343bc48a1121d1aafa7b464064cc85fffd29654d2963a16d040537a': 36500
   }
 };

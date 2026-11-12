@@ -1,6 +1,7 @@
 /* генератор кодов активации pro.
    node tools/make-code.js M 50     50 месячных кодов (31 день)
    node tools/make-code.js Y 20     20 годовых кодов (366 дней)
+   node tools/make-code.js L 5      5 кодов Founder Lifetime (навсегда, ии без лимитов)
    node tools/make-code.js sync     переносит хеши из config.js в код воркера (делается автоматически после генерации)
    node tools/make-code.js env      печатает те же хеши строкой (хеш:дни через запятую)
    коды печатаются один раз и нигде не сохраняются, в config.js попадают только хеши. раздавай коды покупателям, а саму выдачу не коммить. */
@@ -9,7 +10,7 @@ const crypto = require('crypto');
 const path = require('path');
 const CONFIG = path.join(__dirname, '..', 'planner', 'config.js');
 const WORKER = path.join(__dirname, '..', 'planner', 'worker', 'index.js');
-const DAYS = { M: 31, Y: 366 };
+const DAYS = { M: 31, Y: 366, L: 36500 };
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // без путающихся символов: 0 O 1 I
 
 const norm = (s) => String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -43,7 +44,7 @@ if (a === 'env') {
 }
 const type = String(a || '').toUpperCase();
 const n = Math.max(1, Math.min(500, parseInt(b, 10) || 1));
-if (!DAYS[type]) { console.error('использование: node tools/make-code.js M|Y количество  или  node tools/make-code.js env'); process.exit(1); }
+if (!DAYS[type]) { console.error('использование: node tools/make-code.js M|Y|L количество  или  node tools/make-code.js env'); process.exit(1); }
 
 const have = existing(), codes = [], lines = [];
 while (codes.length < n) {
