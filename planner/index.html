@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>DDX Planner</title>
+  <meta name="description" content="Задачи, заметки, еда и деньги в одном месте. Говоришь, а приложение раскладывает всё по местам.">
 
   <!-- pwa: манифест и цвет строки состояния -->
   <link rel="manifest" href="manifest.json">
@@ -16,16 +17,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DDX">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
 
+  <link rel="preload" href="fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
 
   <div class="app">
-    <header class="bar">
-      <div class="bar-title">
-        <p class="kicker" id="kicker"></p>
+    <header class="bar" id="bar">
+      <div>
+        <p class="label" id="kicker"></p>
         <h1 id="title"></h1>
       </div>
       <button class="icon-btn" id="bar-btn" type="button"></button>
@@ -36,10 +39,13 @@
   <!-- то, что распознаётся прямо сейчас -->
   <div class="live" id="live" hidden>
     <div class="card live-card" role="status">
-      <p class="kicker"><span id="live-time">0:00</span> &nbsp; идёт запись</p>
+      <p class="label"><span id="live-time">0:00</span> · идёт запись · нажми, чтобы закончить</p>
       <p class="live-text" id="live-text"></p>
+      <p class="live-hint" id="live-hint"></p>
     </div>
   </div>
+
+  <div class="alarm" id="alarm" role="alert" hidden></div>
 
   <button class="fab" id="fab" type="button" aria-label="быстрый ввод голосом" aria-pressed="false"></button>
 
@@ -53,7 +59,10 @@
 
   <script src="config.js"></script>
   <script src="lib.js"></script>
-  <script src="app.js"></script>
+  <script src="core.js"></script>
+  <script src="hubs.js"></script>
+  <script src="extra.js"></script>
+  <script src="capture.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
