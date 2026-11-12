@@ -676,3 +676,38 @@ html { -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
 .tl-body .item-meta { margin: 3px 0 0; }
 .tl-row.done .item-title { text-decoration: line-through; color: var(--mute); }
 .tl-row.done .tl-dot { background: var(--mute2); }
+
+/* заставка и знакомство: пульсирующее свечение, дышащие цифры и логотип, текст проявляется по очереди */
+.onb::after {
+  content: ""; position: absolute; left: 50%; top: 34%; width: 120vw; max-width: 720px; aspect-ratio: 1; margin: calc(min(60vw, 360px) * -1) 0 0 calc(min(60vw, 360px) * -1); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .13) 0%, rgba(255, 255, 255, .05) 34%, transparent 68%);
+  animation: glow-pulse 5.4s ease-in-out infinite alternate; will-change: transform, opacity;
+}
+@keyframes glow-pulse { from { transform: scale(.82); opacity: .45; } to { transform: scale(1.18); opacity: 1; } }
+.onb-no { animation: num-pulse 4.2s ease-in-out infinite alternate; transform-origin: left center; }
+@keyframes num-pulse { from { color: rgba(255, 255, 255, .06); transform: scale(1); } to { color: rgba(255, 255, 255, .17); transform: scale(1.04); } }
+.onb-body > * { animation: up 1s var(--ease) both; }
+.onb-body > :nth-child(2) { animation-delay: .12s; }
+.onb-body > :nth-child(3) { animation-delay: .26s; }
+.onb-body > .onb-no { animation: up 1s var(--ease) both, num-pulse 4.2s ease-in-out 1s infinite alternate; }
+@keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.onb-brand svg.logo polygon { animation: logo-breathe 4.2s ease-in-out infinite; }
+.onb-brand svg.logo polygon:nth-child(2) { animation-delay: .3s; }
+.onb-brand svg.logo polygon:nth-child(3) { animation-delay: .6s; }
+.onb-brand svg.logo polygon:nth-child(4) { animation-delay: .9s; }
+.onb-brand svg.logo polygon:nth-child(5) { animation-delay: 1.2s; }
+.onb-brand svg.logo polygon:nth-child(6) { animation-delay: 1.5s; }
+.onb-dots i.on { animation: dot-glow 2.4s ease-in-out infinite alternate; }
+@keyframes dot-glow { from { box-shadow: 0 0 0 rgba(255, 255, 255, 0); } to { box-shadow: 0 0 12px rgba(255, 255, 255, .6); } }
+.onb .btn.solid { animation: btn-pulse 2.8s ease-in-out infinite; }
+@keyframes btn-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .22); } 50% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); } }
+
+.splash::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 360px; height: 360px; margin: -200px 0 0 -180px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .12) 0%, transparent 68%); animation: glow-pulse 2.6s ease-in-out infinite alternate;
+}
+.splash-in { position: relative; }
+.splash-sub { animation: think-text 1.6s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .onb::after, .onb-no, .onb-body > *, .onb-brand svg.logo polygon, .onb-dots i.on, .onb .btn.solid, .splash::before, .splash-sub { animation: none !important; }
+}
