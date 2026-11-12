@@ -739,3 +739,17 @@ a.btn.solid { color: #111112; }
 .onb-steps li span { flex: 1; min-width: 0; }
 .onb-steps li svg.i { flex: none; width: 24px; height: 24px; color: var(--silver); }
 .onb-body p.onb-note { margin-top: 14px; font-size: 14px; line-height: 1.5; max-width: none; }
+
+/* знакомство: кнопка не должна прятаться за панелью safari */
+.onb { inset: 0 0 auto 0; height: 100vh; height: 100dvh; overflow-y: auto; overscroll-behavior: contain; }
+.onb-body { min-height: 0; flex: 1 0 auto; padding-bottom: 20px; }
+.onb-foot { margin-top: auto; padding-bottom: 76px; }
+body.standalone .onb-foot, .onb.pwa .onb-foot { padding-bottom: 0; }
+@media (display-mode: standalone) { .onb-foot { padding-bottom: 0; } }
+@media (max-height: 800px) {
+  .onb-no { font-size: clamp(56px, 17vw, 80px); margin-bottom: 0; }
+  .onb-body h2 { font-size: 28px; }
+  .onb-steps { margin-top: 12px; }
+  .onb-steps ol { gap: 8px; }
+  .onb-steps li { padding: 10px 12px; font-size: 15px; }
+}
