@@ -618,10 +618,17 @@
     const yearFull = C.price.month * 12;
     const off = Math.round((1 - C.price.year / yearFull) * 100);
     root.append(card('', label('бесплатно'), h('p', { class: 'num sm' }, '0', h('small', { text: '₸' })), h('ul', { class: 'plan' }, C.freePlan.map((f) => h('li', { text: f })))));
-    root.append(card('dots', label('pro на месяц'), h('p', { class: 'num sm' }, fmt(C.price.month), h('small', { text: '₸ в месяц' })), h('p', { class: 'cap', text: 'Как стакан кофе. Все ограничения сняты.' })));
-    root.append(card('dots', h('div', { class: 'tile-head' }, label('pro на год'), h('span', { class: 'tag hot', text: '−' + off + '%' })),
-      h('p', { class: 'num sm' }, fmt(C.price.year), h('small', { text: '₸ в год' })),
-      h('p', { class: 'cap', text: 'Это ' + fmt(C.price.year / 12) + ' ₸ в месяц вместо ' + fmt(C.price.month) + '. Экономия ' + fmt(yearFull - C.price.year) + ' ₸.' })));
+    const perks = ['Голос без лимитов', 'Безлимит на задачи, заметки и повторы', 'Сколько угодно напоминаний и привычек', 'Статистика за 30 и 90 дней', 'ИИ без дневного лимита'];
+    const perkList = () => h('ul', { class: 'plan' }, perks.map((f) => h('li', { text: f })));
+    root.append(card('dots plan-card', label('pro на месяц'),
+      h('p', { class: 'num' }, fmt(C.price.month), h('small', { text: '₸ в месяц' })),
+      h('p', { class: 'cap', text: 'Как стакан кофе. Все ограничения сняты, отменить можно в любой момент.' }),
+      perkList()));
+    root.append(card('dots plan-card best', h('div', { class: 'tile-head' }, label('pro на год'), h('span', { class: 'tag hot', text: '−' + off + '%' })),
+      h('p', { class: 'num' }, fmt(C.price.year), h('small', { text: '₸ в год' })),
+      h('p', { class: 'cap', text: 'Это ' + fmt(Math.round(C.price.year / 12)) + ' ₸ в месяц вместо ' + fmt(C.price.month) + '. Экономия ' + fmt(yearFull - C.price.year) + ' ₸, почти три месяца в подарок.' }),
+      perkList(),
+      h('p', { class: 'cap plan-note', text: 'Самый выгодный вариант. Платишь раз в год и забываешь про лимиты.' })));
     root.append(h('button', { class: 'btn solid block', type: 'button', text: 'как оплатить', onclick: () => go('pay') }));
     return root;
   }

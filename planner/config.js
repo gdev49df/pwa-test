@@ -7,7 +7,7 @@ window.DDX_CONFIG = {
   ai: { url: 'https://ddx-ai.wsmp.workers.dev/' },
 
   // цены в тенге
-  price: { month: 1090, year: 10990 },
+  price: { month: 1090, year: 9990 },
 
   // оплата переводом на карту kaspi. когда впишешь номер, он появится на странице оплаты
   kaspi: { card: '', holder: '' },

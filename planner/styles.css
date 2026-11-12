@@ -624,3 +624,11 @@ button:not(:active), .tap:not(:active), .card:not(:active), .tab:not(:active), .
 .msg.plain .w { animation-name: w-fade; }
 @keyframes w-fade { from { opacity: 0; } to { opacity: 1; } }
 html { -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
+
+/* крупные плашки тарифов */
+.plan-card { padding-top: 26px; padding-bottom: 26px; }
+.plan-card .num { font-size: 56px; margin-top: 14px; }
+.plan-card .cap { margin-top: 12px; font-size: 16px; }
+.plan-card .plan { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); gap: 12px; font-size: 16px; }
+.plan-card.best { border-color: rgba(255, 255, 255, .22); }
+.plan-note { margin-top: 18px; color: var(--silver); }
