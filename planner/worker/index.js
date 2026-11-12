@@ -32,7 +32,11 @@ async function claude(env, model, system, content, maxTokens) {
     headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: model, max_tokens: maxTokens, system: system, messages: [{ role: 'user', content: content }] })
   });
-  if (!r.ok) throw new Error('anthropic ' + r.status);
+  if (!r.ok) {
+    let msg = '';
+    try { const e = await r.json(); msg = (e.error && e.error.message) || ''; } catch (x) { /* тела нет */ }
+    throw new Error('anthropic ' + r.status + (msg ? ': ' + msg.slice(0, 160) : ''));
+  }
   const j = await r.json();
   return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
 }
@@ -43,7 +47,7 @@ export default {
     const allowed = String(env.ALLOWED_ORIGINS || 'https://gdev49df.github.io').split(',').map((s) => s.trim());
 
     // чужие сайты не могут пользоваться воркером из браузера
-    if (!allowed.includes(origin)) return new Response('forbidden', { status: 403 });
+    if (!allowed.includes(origin)) return new Response(JSON.stringify({ error: 'origin ' + origin + ' не разрешён' }), { status: 403, headers: Object.assign({ 'Content-Type': 'application/json' }, cors(origin || '*')) });
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
     if (req.method !== 'POST') return reply(405, { error: 'method' }, origin);
     if (!env.ANTHROPIC_API_KEY) return reply(500, { error: 'no key' }, origin);
@@ -80,7 +84,7 @@ export default {
 
       return reply(400, { error: 'mode' }, origin);
     } catch (e) {
-      return reply(502, { error: 'upstream' }, origin);
+      return reply(502, { error: 'upstream', detail: String(e.message || e).slice(0, 220) }, origin);
     }
   }
 };

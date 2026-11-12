@@ -308,7 +308,11 @@
     const to = setTimeout(() => ctl.abort(), 40000);
     try {
       const r = await fetch(C.ai.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal });
-      if (!r.ok) throw new Error('http ' + r.status);
+      if (!r.ok) {
+        let d = '';
+        try { const e = await r.json(); d = e.detail || e.error || ''; } catch (x) { /* тела нет */ }
+        throw new Error('http ' + r.status + (d ? ' ' + d : ''));
+      }
       const j = await r.json();
       usage().ai++; save();
       return j;

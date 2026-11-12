@@ -486,7 +486,7 @@
       busy = true; input.value = '';
       askLog.push({ me: true, t: q }); askLog.push({ me: false, t: 'думаю…' }); draw();
       D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { askLog[askLog.length - 1].t = r.answer || 'пустой ответ'; })
-        .catch((e) => { askLog[askLog.length - 1].t = e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить, попробуй ещё раз'; })
+        .catch((e) => { askLog[askLog.length - 1].t = e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'; })
         .then(() => { busy = false; draw(); });
     };
     root.append(card('cap-in', input, send));

@@ -645,7 +645,7 @@
           text.value = r.items.map((i) => i.name + (i.grams ? ' ' + i.grams + ' г' : '')).join(', ');
           kcal.value = String(r.items.reduce((a, i) => a + i.kcal, 0));
           est.textContent = '≈ оценка по фото, проверь и поправь' + (r.note ? '. ' + r.note : '');
-        }).catch((e) => { if (e.message !== 'limit') toast('не удалось распознать, впиши сам'); estimate(); });
+        }).catch((e) => { if (e.message !== 'limit') toast('не удалось распознать: ' + e.message); estimate(); });
       } else setTimeout(() => text.focus(), 350);
     });
   }
