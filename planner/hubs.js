@@ -85,7 +85,9 @@
     // тренды и поиск
     root.append(
       tapCard('tile slim', () => go('stats'), label('тренды'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'твоя статистика' })),
-      tapCard('tile slim', () => go('search'), label('✦ поиск'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'найди любую запись' }))
+      D.aiOn()
+        ? tapCard('tile slim', () => go('ask'), label('✦ ии'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'спроси свою жизнь' }))
+        : tapCard('tile slim', () => go('search'), label('✦ поиск'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'найди любую запись' }))
     );
 
     if (!D.isPro()) {
@@ -634,7 +636,17 @@
           h('div', { class: 'chips scroll' }, QUICK_FOOD.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => { text.value = q; estimate(); } }))),
           h('button', { class: 'btn solid block', type: 'button', text: 'добавить', onclick: add })));
       estimate();
-      setTimeout(() => text.focus(), 350);
+      // фото: ии называет блюда и считает калории, ты можешь поправить
+      if (photo && D.aiOn()) {
+        est.textContent = 'распознаю фото…';
+        D.aiCall({ mode: 'food', image: photo }).then((r) => {
+          if (!document.body.contains(text)) return;
+          if (!r.items || !r.items.length) { est.textContent = r.note || 'еды не видно, впиши сам'; return; }
+          text.value = r.items.map((i) => i.name + (i.grams ? ' ' + i.grams + ' г' : '')).join(', ');
+          kcal.value = String(r.items.reduce((a, i) => a + i.kcal, 0));
+          est.textContent = '≈ оценка по фото, проверь и поправь' + (r.note ? '. ' + r.note : '');
+        }).catch((e) => { if (e.message !== 'limit') toast('не удалось распознать, впиши сам'); estimate(); });
+      } else setTimeout(() => text.focus(), 350);
     });
   }
 

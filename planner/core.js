@@ -211,9 +211,10 @@
 
   function usage() {
     const t = today();
-    if (!D.S.usage[t]) D.S.usage = { [t]: { voice: 0, voiceCat: 0, focus: 0 } };
+    if (!D.S.usage[t]) D.S.usage = { [t]: { voice: 0, voiceCat: 0, focus: 0, ai: 0 } };
     const u = D.S.usage[t];
     if (u.focus == null) u.focus = 0;
+    if (u.ai == null) u.ai = 0;
     return u;
   }
 
@@ -278,7 +279,7 @@
     notes: 'текстовых заметок', tasks: 'активных задач', cats: 'своих категорий', subs: 'подзадач на одну задачу',
     repeats: 'повторяющихся задач', pins: 'закреплённых заметок', moneyMonth: 'записей доходов и расходов в месяц',
     voiceDay: 'голосовых записей в день', voiceCatDay: 'голосовых выборов категории в день', reminders: 'активных напоминаний',
-    focusDay: 'сессий Focus Mode в день', lists: 'умных списков', habits: 'привычек', statsDays: 'дней статистики'
+    focusDay: 'сессий Focus Mode в день', aiDay: 'запросов к ии в день', lists: 'умных списков', habits: 'привычек', statsDays: 'дней статистики'
   };
   // возвращает false, чтобы можно было написать: if (над лимитом) return limitHit(...)
   function limitHit(kind) {
@@ -295,6 +296,23 @@
   }
   function limitLine(text, n, key) {
     return isPro() ? null : label(text + ': ' + n + ' из ' + C.limits[key], 'tiny');
+  }
+
+  /* ---------- ии через воркер: ключа в приложении нет ---------- */
+
+  const aiOn = () => !!(C.ai && C.ai.url);
+  async function aiCall(body) {
+    if (!aiOn()) throw new Error('no-url');
+    if (!isPro() && usage().ai >= C.limits.aiDay) { limitHit('aiDay'); throw new Error('limit'); }
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 40000);
+    try {
+      const r = await fetch(C.ai.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const j = await r.json();
+      usage().ai++; save();
+      return j;
+    } finally { clearTimeout(to); }
   }
 
   /* ---------- действия с данными ---------- */
@@ -605,7 +623,7 @@
     dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
-    focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
+    aiOn, aiCall, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
   });
   // Object.assign копирует значение, а не геттер, поэтому маршрут отдаём отдельно
   Object.defineProperty(D, 'route', { get: () => route });

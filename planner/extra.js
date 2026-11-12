@@ -444,6 +444,59 @@
     return root;
   }
 
+  /* ================= спроси ии ================= */
+
+  // короткая сводка по данным: уходит в воркер вместе с вопросом
+  function lifeContext() {
+    const S = D.S, t0 = today(), now = new Date(), out = [];
+    out.push('Сегодня ' + D.WEEKDAYS[now.getDay()] + ', ' + now.getDate() + ' ' + D.MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', время ' + D.hm(now.getTime()) + '.');
+    const act = D.activeTasks().filter((t) => t.kind !== 'meeting').sort(D.TASK_SORT).slice(0, 25);
+    out.push('Активные задачи: ' + (act.map((t) => t.title + (t.due ? ' (' + D.dueLabel(t.due, t.time) + ')' : '')).join('; ') || 'нет') + '.');
+    const meet = D.activeTasks().filter((t) => t.kind === 'meeting').sort((a, b) => D.dueTs(a) - D.dueTs(b)).slice(0, 10);
+    out.push('Встречи: ' + (meet.map((t) => t.title + (t.due ? ' (' + D.dueLabel(t.due, t.time) + ')' : '')).join('; ') || 'нет') + '.');
+    const meals = S.meals.filter((m) => L.dkey(new Date(m.t)) === t0);
+    out.push('Еда сегодня: ' + (meals.map((m) => m.text + ' ' + m.kcal + ' ккал').join('; ') || 'ничего') + '. Цель ' + S.goals.kcal + ' ккал, воды выпито ' + (S.water[t0] || 0) + ' из ' + S.goals.water + ' мл.');
+    const mk = D.monthMoney();
+    const exp = mk.filter((m) => m.kind === 'exp').reduce((a, m) => a + m.amount, 0), inc = mk.filter((m) => m.kind === 'inc').reduce((a, m) => a + m.amount, 0);
+    out.push('Деньги за месяц: расходы ' + exp + ' ₸, доходы ' + inc + ' ₸' + (S.budget ? ', бюджет ' + S.budget + ' ₸' : '') + '. Последние записи: ' + (mk.slice(0, 15).map((m) => (m.kind === 'exp' ? '−' : '+') + m.amount + ' ' + (m.text || m.cat || '')).join('; ') || 'нет') + '.');
+    out.push('Привычки: ' + (S.habits.map((x) => x.name + ' (серия ' + L.streak(x.days, t0) + ', сегодня ' + (x.days[t0] ? 'отмечена' : 'нет') + ')').join('; ') || 'нет') + '.');
+    out.push('Последние заметки: ' + (S.notes.filter((n) => !n.archived).slice(0, 8).map((n) => n.text.slice(0, 120)).join(' | ') || 'нет') + '.');
+    return out.join('\n').slice(0, 7800);
+  }
+
+  let askLog = [];
+  const ASK_HINTS = ['что у меня на сегодня?', 'сколько я потратил за неделю?', 'что я ел сегодня и сколько осталось ккал?', 'какие привычки я пропускаю?'];
+
+  function pAsk() {
+    const root = h('div', { class: 'stack' });
+    root.append(D.mark('ASK'));
+    if (!D.aiOn()) { root.append(h('p', { class: 'mark-cap', text: 'ИИ пока не подключён: нужен адрес воркера в config.js.' })); return root; }
+    const box = h('div', { class: 'stack' });
+    const input = h('input', { class: 'field', placeholder: 'Спроси свою жизнь…', maxlength: '300', enterkeyhint: 'send', 'aria-label': 'вопрос' });
+    const send = h('button', { class: 'ib go', type: 'button', 'aria-label': 'спросить', onclick: () => ask(input.value) }, icon('plus'));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
+    const draw = () => {
+      box.replaceChildren();
+      askLog.forEach((m) => box.append(card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t }))));
+    };
+    let busy = false;
+    const ask = (q) => {
+      q = String(q || '').trim();
+      if (!q || busy) return;
+      busy = true; input.value = '';
+      askLog.push({ me: true, t: q }); askLog.push({ me: false, t: 'думаю…' }); draw();
+      D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { askLog[askLog.length - 1].t = r.answer || 'пустой ответ'; })
+        .catch((e) => { askLog[askLog.length - 1].t = e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить, попробуй ещё раз'; })
+        .then(() => { busy = false; draw(); });
+    };
+    root.append(card('cap-in', input, send));
+    root.append(h('p', { class: 'cap', style: 'margin:8px 6px 0', text: 'Для ответа задачи, траты, еда и последние заметки отправляются на сервер ИИ. Остальное хранится только на телефоне.' }));
+    if (!askLog.length) root.append(h('div', { class: 'chips scroll' }, ASK_HINTS.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => ask(q) }))));
+    root.append(box);
+    draw();
+    return root;
+  }
+
   /* ================= меню ================= */
 
   function pMenu() {
@@ -454,6 +507,7 @@
       ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
       ['stats', 'Статистика', 'задачи, деньги, фокус, привычки'],
       ['timeline', 'Timeline', 'лента событий по дням'],
+      D.aiOn() ? ['ask', 'Спроси ИИ', 'вопросы по твоим данным'] : null,
       ['search', 'Поиск', 'по всем записям'],
       ['reset', 'Daily Reset', 'разобрать хвосты дня'],
       ['archive', 'Архив', 'выполненное и старые заметки'],
@@ -463,7 +517,7 @@
       ['prefs', 'Профиль и цели', 'имя, цели, уведомления, копия данных'],
       ['support', 'Поддержка', 'написать нам'],
       ['legal', 'Документы', 'конфиденциальность и условия']
-    ];
+    ].filter(Boolean);
     const root = h('div', { class: 'stack' });
     root.append(D.mark('SETTINGS'));
     rows.forEach((r, i) => root.append(tapCard('menu-row', () => go(r[0]),
@@ -663,6 +717,7 @@
 
   function pLegal() {
     const root = h('div', { class: 'stack' });
+    if (D.aiOn()) root.append(card('', label('ии'), h('p', { class: 'cap ink', text: 'Если пользоваться ИИ, фото еды или сводка твоих данных (задачи, траты, еда, последние заметки) отправляется через наш сервер в сервис Anthropic. Мы ничего не храним. Остальное остаётся на телефоне.' })));
     root.append(card('', label('конфиденциальность'),
       h('p', { class: 'cap ink', text: 'Задачи, заметки, списки, привычки, записи еды и расходов хранятся только на твоём телефоне. Мы не отправляем их на сервер и не видим их.' }),
       h('p', { class: 'cap ink', text: 'При голосовом вводе речь распознаёт сервис твоего браузера (Safari использует сервис Apple). Это происходит вне приложения.' })));
@@ -681,6 +736,7 @@
   D.page('stats', 'Статистика', pStats, 'digest');
   D.page('timeline', 'Timeline', pTimeline, 'digest');
   D.page('search', 'Поиск', pSearch, 'digest');
+  D.page('ask', 'Спроси ИИ', pAsk, 'digest');
   D.page('settings', 'Настройки', pMenu, 'digest');
   D.page('pro', 'DDX Pro', pPro, 'settings');
   D.page('subscriptions', 'Тарифы', pSubs, 'pro');
