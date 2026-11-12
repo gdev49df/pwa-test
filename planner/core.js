@@ -514,14 +514,21 @@
   const pushSupported = () => aiOn() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   const pushOn = () => { try { return localStorage.getItem(PUSH_KEY) === '1' && pushSupported() && Notification.permission === 'granted'; } catch (e) { return false; } };
   const unb64u = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const b = atob(s); const o = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) o[i] = b.charCodeAt(i); return o; };
-  const post = (path, body) => fetch(pushBase() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    .then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  // ошибка воркера с пояснением: например «http 500: в воркере нет привязки KV»
+  const failed = async (r) => { let d = ''; try { const e = await r.json(); d = e.detail || e.error || ''; } catch (x) { /* тела нет */ } return new Error('http ' + r.status + (d ? ': ' + d : '')); };
+  const post = async (path, body) => {
+    const r = await fetch(pushBase() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw await failed(r);
+    return r.json();
+  };
 
   async function pushSub(create) {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub && create) {
-      const k = await fetch(pushBase() + 'key').then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+      const kr = await fetch(pushBase() + 'key');
+      if (!kr.ok) throw await failed(kr);
+      const k = await kr.json();
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(k.key) });
     }
     return sub;
