@@ -1,10 +1,16 @@
 // при изменении файлов меняй версию, чтобы кэш обновился
-const CACHE = 'notes-v1';
+const CACHE = 'notes-v2';
 const FILES = [
   './',
   './index.html',
   './app.js',
   './manifest.json',
+  '../fonts/unbounded-cyrillic.woff2',
+  '../fonts/unbounded-latin.woff2',
+  '../fonts/onest-cyrillic.woff2',
+  '../fonts/onest-latin.woff2',
+  '../fonts/literata-cyrillic.woff2',
+  '../fonts/literata-latin.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'

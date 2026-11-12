@@ -18,6 +18,13 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <style>
+    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("../fonts/unbounded-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("../fonts/unbounded-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
+    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("../fonts/onest-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("../fonts/onest-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
+    @font-face { font-family: "Literata"; font-weight: 200 900; font-display: swap; src: url("../fonts/literata-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+    @font-face { font-family: "Literata"; font-weight: 200 900; font-display: swap; src: url("../fonts/literata-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
+
     :root {
       --bg: #15101f;
       --surface: #221a33;
@@ -25,8 +32,9 @@
       --ink: #f2eefb;
       --muted: #9b90ba;
       --rec: #ff5a6e;
-      --ui: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", sans-serif;
-      --read: ui-serif, "New York", Georgia, "Times New Roman", serif;
+      --ui: "Onest", system-ui, sans-serif;
+      --display: "Unbounded", "Onest", system-ui, sans-serif;
+      --read: "Literata", Georgia, serif;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -47,7 +55,7 @@
     }
 
     /* шапка */
-    .title { margin: 0; font-size: 38px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; }
+    .title { margin: 0; font-family: var(--display); font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; }
     .count { margin: 6px 0 0; font-size: 16px; color: var(--muted); }
 
     .hint {
@@ -82,7 +90,7 @@
 
     /* пусто */
     .empty { padding: 28px 0; border-top: 1px solid var(--line); }
-    .empty-title { margin: 0; font-size: 22px; font-weight: 700; }
+    .empty-title { margin: 0; font-family: var(--display); font-size: 19px; line-height: 1.25; font-weight: 600; }
     .empty-hint { margin: 10px 0 0; max-width: 34ch; font-size: 16px; line-height: 1.5; color: var(--muted); }
 
     .foot { margin: 32px 0 0; font-size: 13px; color: var(--muted); }
@@ -144,7 +152,7 @@
       padding: 20px 22px calc(env(safe-area-inset-bottom) + 16px);
       background: var(--bg); border-top: 1px solid var(--line); border-radius: 22px 22px 0 0;
     }
-    .sheet-title { margin: 0; font-size: 20px; font-weight: 700; }
+    .sheet-title { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; }
     .sheet-hint { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
     .sheet-actions { display: flex; gap: 10px; margin-top: 14px; }
     .btn {

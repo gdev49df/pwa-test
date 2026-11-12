@@ -3,165 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Привычки</title>
-
-  <!-- pwa: манифест и цвет строки состояния -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#e9eef8">
-
-  <!-- pwa для ios (safari) -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Привычки">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-
+  <title>Приложения W-Dev</title>
+  <meta name="theme-color" content="#111112">
+  <meta name="description" content="Небольшие приложения, которые работают на iPhone без App Store.">
+  <link rel="apple-touch-icon" href="habits/icons/apple-touch-icon.png">
   <style>
+    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("fonts/unbounded-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+    @font-face { font-family: "Unbounded"; font-weight: 200 900; font-display: swap; src: url("fonts/unbounded-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
+    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("fonts/onest-cyrillic.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+    @font-face { font-family: "Onest"; font-weight: 100 900; font-display: swap; src: url("fonts/onest-latin.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212; }
+
     :root {
-      --bg: #e9eef8;
-      --ink: #101a3d;
-      --muted: #56628a;
-      --line: #c9d3ea;
-      --stamp: #2438ff;
-      --sun: #ffc933;
-      --font: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", sans-serif;
+      --bg: #111112; --card: #1c1c1e; --line: #2c2c2f; --ink: #f2f2f4; --muted: #8e8e95; --silver: #d9d9de;
+      --font: "Onest", system-ui, sans-serif; --display: "Unbounded", "Onest", system-ui, sans-serif;
     }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
     html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
-    body { min-height: 100dvh; -webkit-text-size-adjust: 100%; }
-
-    button, input { font: inherit; color: inherit; }
-    button { cursor: pointer; }
-
-    :focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; }
-
-    .app {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 112px);
-    }
-
-    /* шапка */
-    .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .date { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; }
-    .weekday { margin: 4px 0 0; font-size: 17px; color: var(--muted); }
-    .edit {
-      min-height: 44px; padding: 0 4px; background: none; border: 0;
-      font-size: 17px; font-weight: 600; color: var(--stamp);
-    }
-    .edit[hidden] { display: none; }
-
-    /* прогресс: по сегменту на каждую привычку */
-    .progress { margin: 22px 0 8px; font-size: 15px; color: var(--muted); }
-    .bar { display: flex; gap: 4px; height: 8px; }
-    .seg { flex: 1; border-radius: 4px; background: var(--line); }
-    .seg.on { background: var(--stamp); }
-
-    /* привычки: строки, разделённые линиями */
-    .list { list-style: none; margin: 18px 0 0; padding: 0; }
-    .habit { padding: 22px 0 20px; border-top: 1px solid var(--line); }
-
-    .habit-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-    .habit-name { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 700; overflow-wrap: anywhere; }
-
-    .streak { margin: 0; flex: none; text-align: right; line-height: 1; }
-    .streak-n { display: block; font-size: 34px; font-weight: 800; letter-spacing: -0.02em; color: var(--stamp); }
-    .streak-l { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
-    .streak.zero .streak-n { color: var(--line); }
-
-    /* неделя */
-    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 18px; }
-    .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
-
-    .dot {
-      width: 100%; max-width: 48px; aspect-ratio: 1; padding: 0; border-radius: 50%;
-      background: transparent; border: 2px solid var(--line);
-      display: grid; place-items: center; position: relative;
-    }
-    .dot.today { border: 3px solid var(--sun); }
-    .dot.on { background: var(--stamp); border-color: var(--stamp); }
-    .dot.on::after {
-      content: ""; width: 34%; height: 18%;
-      border-left: 3px solid #fff; border-bottom: 3px solid #fff;
-      transform: translateY(-12%) rotate(-45deg);
-    }
-    .dot.on.today { box-shadow: 0 0 0 3px var(--sun); border-color: var(--stamp); }
-    .dot.stamped { animation: stamp .28s ease-out; }
-    @keyframes stamp { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
-
-    .dl { font-size: 12px; color: var(--muted); }
-    .dl.today { color: var(--ink); font-weight: 700; font-size: 11px; white-space: nowrap; }
-
-    /* удаление */
-    .del {
-      display: none; margin-top: 14px; min-height: 44px; padding: 0 16px;
-      background: none; border: 2px solid var(--ink); border-radius: 22px; font-weight: 600;
-    }
-    body.editing .del { display: inline-block; }
-
-    /* пусто */
-    .empty { padding: 28px 0; border-top: 1px solid var(--line); }
-    .empty-title { margin: 0; font-size: 22px; font-weight: 700; }
-    .empty-hint { margin: 10px 0 0; max-width: 34ch; font-size: 16px; line-height: 1.5; color: var(--muted); }
-
-    .foot { margin: 32px 0 0; font-size: 13px; color: var(--muted); }
-
-    /* форма добавления, прижата к низу */
-    .add {
-      position: fixed; left: 0; right: 0; bottom: 0;
-      padding: 12px 20px calc(env(safe-area-inset-bottom) + 12px);
-      background: var(--bg); border-top: 1px solid var(--line);
-    }
-    .add-inner { max-width: 520px; margin: 0 auto; display: flex; gap: 10px; }
-    .input {
-      flex: 1; min-width: 0; min-height: 48px; padding: 0 16px;
-      font-size: 16px; /* меньше 16px, и safari увеличивает страницу при фокусе */
-      background: #fff; border: 2px solid var(--line); border-radius: 24px;
-    }
-    .input::placeholder { color: var(--muted); }
-    .input:focus { border-color: var(--stamp); outline: none; }
-    .submit {
-      min-height: 48px; padding: 0 22px; border: 0; border-radius: 24px;
-      background: var(--stamp); color: #fff; font-weight: 700; font-size: 16px;
-    }
-
-    @media (prefers-reduced-motion: reduce) { .dot.stamped { animation: none; } }
+    body { min-height: 100dvh; -webkit-text-size-adjust: 100%;
+      background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 14px 14px; }
+    .wrap { max-width: 520px; margin: 0 auto; padding: max(40px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); }
+    .brand { margin: 0; font-size: 14px; color: var(--muted); letter-spacing: .02em; }
+    h1 { margin: 10px 0 0; font-family: var(--display); font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -.03em; }
+    .lead { margin: 14px 0 32px; max-width: 34ch; font-size: 16px; line-height: 1.5; color: var(--muted); }
+    .apps { display: grid; gap: 14px; padding: 0; margin: 0; list-style: none; }
+    .app { display: block; padding: 22px; border-radius: 26px; background: var(--card); border: 1px solid var(--line);
+      color: inherit; text-decoration: none; transition: transform .35s ease, border-color .35s ease; }
+    .app:active { transform: scale(.985); border-color: #4a4a50; }
+    .app.main { background: linear-gradient(160deg, #26262a, #1c1c1e); }
+    .app h2 { margin: 0; font-family: var(--display); font-size: 20px; line-height: 1.2; font-weight: 600; letter-spacing: -.02em; }
+    .app p { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: var(--muted); }
+    .tag { display: inline-block; margin-top: 16px; padding: 6px 12px; border-radius: 999px; background: var(--silver); color: #111; font-size: 13px; font-weight: 600; }
+    .app:not(.main) .tag { background: transparent; color: var(--silver); border: 1px solid #3a3a3f; }
+    .how { margin: 32px 0 0; font-size: 14px; line-height: 1.55; color: var(--muted); }
+    .how b { color: var(--silver); font-weight: 600; }
+    .foot { margin: 28px 0 0; font-size: 13px; color: var(--muted); }
+    :focus-visible { outline: 2px solid var(--silver); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .app { transition: none; } }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="top">
-      <div>
-        <h1 class="date" id="date"></h1>
-        <p class="weekday" id="weekday"></p>
-      </div>
-      <button class="edit" id="edit" type="button" hidden>изменить</button>
-    </header>
+  <main class="wrap">
+    <p class="brand">w-dev</p>
+    <h1>приложения для iphone</h1>
+    <p class="lead">работают прямо из safari, без app store. добавь нужное на экран «домой».</p>
 
-    <p class="progress" id="progress"></p>
-    <div class="bar" id="bar" aria-hidden="true"></div>
+    <ul class="apps">
+      <li><a class="app main" href="planner/">
+        <h2>ddx planner</h2>
+        <p>задачи, заметки, еда и расходы в одном месте. говоришь в микрофон, а приложение раскладывает всё по местам.</p>
+        <span class="tag">открыть</span>
+      </a></li>
+      <li><a class="app" href="notes/">
+        <h2>голосовые заметки</h2>
+        <p>нажал, надиктовал, текст сохранился.</p>
+        <span class="tag">открыть</span>
+      </a></li>
+      <li><a class="app" href="habits/">
+        <h2>привычки</h2>
+        <p>отмечай привычку каждый день, а приложение считает дни подряд.</p>
+        <span class="tag">открыть</span>
+      </a></li>
+    </ul>
 
-    <ul class="list" id="list"></ul>
-
+    <p class="how"><b>как установить:</b> открой приложение в safari, нажми «поделиться» и выбери «на экран домой».</p>
     <p class="foot">Создано @bauyrzhanov_12_</p>
-  </div>
-
-  <form class="add" id="form" autocomplete="off">
-    <div class="add-inner">
-      <input class="input" id="input" type="text" maxlength="60" placeholder="новая привычка" enterkeyhint="done" aria-label="название новой привычки">
-      <button class="submit" type="submit">добавить</button>
-    </div>
-  </form>
-
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(console.error);
-      });
-    }
-  </script>
+  </main>
 </body>
 </html>
