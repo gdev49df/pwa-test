@@ -11,3 +11,12 @@ ALLOWED_ORIGINS = "https://gdev49df.github.io"
 
 # ключ в файл не пишем. добавляется командой:
 #   npx wrangler secret put GROQ_API_KEY
+
+# пуши: раз в минуту проверяем напоминания
+[triggers]
+crons = ["* * * * *"]
+
+# хранилище для пушей: создай namespace и подставь его id (или привяжи через сайт, переменная KV)
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "..."

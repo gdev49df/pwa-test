@@ -197,6 +197,7 @@
   D.S = load();
   let saveFail = false;
   function save() {
+    pushSoon();
     try { localStorage.setItem(KEY, JSON.stringify(D.S)); saveFail = false; }
     catch (e) {
       // чаще всего кончилось место из-за фото еды: убираем самые старые фото и пробуем ещё раз
@@ -494,6 +495,71 @@
     tickFocus();
   }
 
+
+  /* ---------- пуш-уведомления: работают при закрытом приложении ----------
+     приложение отдаёт воркеру список ближайших напоминаний, воркер каждую минуту рассылает те, что подошли */
+
+  const PUSH_KEY = 'ddx-push';
+  const pushBase = () => String(C.ai.url).replace(/\/?$/, '/') + 'push/';
+  const pushSupported = () => aiOn() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const pushOn = () => { try { return localStorage.getItem(PUSH_KEY) === '1' && pushSupported() && Notification.permission === 'granted'; } catch (e) { return false; } };
+  const unb64u = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const b = atob(s); const o = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) o[i] = b.charCodeAt(i); return o; };
+  const post = (path, body) => fetch(pushBase() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+
+  async function pushSub(create) {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub && create) {
+      const k = await fetch(pushBase() + 'key').then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(k.key) });
+    }
+    return sub;
+  }
+
+  async function pushSync() {
+    if (!pushOn()) return;
+    const sub = await pushSub(false);
+    if (!sub) return;
+    const now = Date.now();
+    const items = D.S.tasks.filter((t) => !t.done && t.remind && t.due && dueTs(t) > now - 120000).sort((a, b) => dueTs(a) - dueTs(b)).slice(0, 40)
+      .map((t) => ({ id: t.id, ts: dueTs(t), title: t.kind === 'meeting' ? 'Встреча' : 'Напоминание', body: t.title + (t.place ? ' · ' + t.place : '') }));
+    await post('sync', { sub: sub.toJSON(), items: items });
+  }
+
+  let pushTimer = 0;
+  function pushSoon() {
+    if (!aiOn()) return;
+    let on = false; try { on = localStorage.getItem(PUSH_KEY) === '1'; } catch (e) { /* нет */ }
+    if (!on) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => { pushSync().catch(() => { /* повторим при следующем изменении */ }); }, 2500);
+  }
+
+  async function pushEnable() {
+    if (!pushSupported()) throw new Error('unsupported');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('denied');
+    try { await pushSub(true); }
+    catch (e) { const old = await pushSub(false); if (old) await old.unsubscribe(); await pushSub(true); }   // подписка со старым ключом
+    try { localStorage.setItem(PUSH_KEY, '1'); } catch (e) { /* без памяти */ }
+    await pushSync();
+  }
+
+  async function pushOff() {
+    try { localStorage.removeItem(PUSH_KEY); } catch (e) { /* нет */ }
+    const sub = await pushSub(false);
+    if (!sub) return;
+    try { await post('off', { sub: sub.toJSON() }); } catch (e) { /* воркер недоступен */ }
+    await sub.unsubscribe();
+  }
+
+  async function pushTest() {
+    const sub = await pushSub(false);
+    if (!sub) throw new Error('no-sub');
+    await post('test', { sub: sub.toJSON() });
+  }
+
   function downloadIcs(t) {
     const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
     const blob = new Blob([L.ics(t, stamp)], { type: 'text/calendar;charset=utf-8' });
@@ -627,8 +693,9 @@
     dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
-    aiOn, aiCall, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
+    aiOn, aiCall, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
   });
   // Object.assign копирует значение, а не геттер, поэтому маршрут отдаём отдельно
   Object.defineProperty(D, 'route', { get: () => route });
+  pushSoon();
 })();

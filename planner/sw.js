@@ -1,5 +1,5 @@
 // при изменении файлов меняй версию, чтобы кэш обновился
-const CACHE = 'ddx-v16';
+const CACHE = 'ddx-v17';
 const FILES = [
   './',
   './index.html',
@@ -44,6 +44,13 @@ self.addEventListener('fetch', (e) => {
       })
       .catch(() => caches.match(e.request, { ignoreSearch: true }))
   );
+});
+
+// пуш с сервера: показываем уведомление, даже когда приложение закрыто
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: 'DDX Planner', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'DDX Planner', { body: d.body || '', tag: d.tag || 'ddx', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' }));
 });
 
 // нажатие на уведомление открывает приложение

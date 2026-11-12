@@ -692,15 +692,28 @@
 
     // уведомления
     const perm = 'Notification' in window ? Notification.permission : 'unsupported';
-    root.append(card('', label('напоминания и уведомления'),
-      h('p', { class: 'cap', text: perm === 'granted' ? 'Уведомления включены. Они приходят, пока приложение открыто или недавно свёрнуто.' :
-        perm === 'denied' ? 'Уведомления запрещены в настройках телефона.' :
-          perm === 'unsupported' ? 'В этом режиме браузер не даёт уведомления. На iPhone добавь приложение на экран «Домой» (iOS 16.4 и новее).' : 'Разреши уведомления, чтобы напоминания и конец фокуса приходили системно.' }),
-      h('p', { class: 'cap', text: 'Чтобы напоминание точно сработало при закрытом приложении, открой задачу и нажми «в календарь iphone».' }),
-      perm === 'default' ? h('button', { class: 'btn solid block', style: 'margin-top:12px', type: 'button', text: 'разрешить уведомления', onclick: () => {
-        Notification.requestPermission().then(() => refresh());
-      } }) : null,
-      perm === 'granted' ? h('button', { class: 'btn block', style: 'margin-top:12px', type: 'button', text: 'проверить', onclick: () => D.notify('DDX Planner', 'Уведомления работают', 'test') }) : null));
+    const pushReady = D.pushSupported();
+    const pushNow = D.pushOn();
+    const fail = (err) => toast(err.message === 'denied' ? 'уведомления запрещены в настройках телефона' : err.message === 'unsupported' ? 'открой приложение с экрана «Домой»' : 'не получилось: ' + err.message);
+    let notif;
+    if (pushReady) {
+      notif = card('', label('напоминания и уведомления'),
+        h('p', { class: 'cap', text: pushNow ? 'Пуши включены: напоминание придёт на телефон, даже когда приложение закрыто.' :
+          perm === 'denied' ? 'Уведомления запрещены в настройках телефона. Разреши их там и вернись сюда.' : 'Включи пуши, и напоминания будут приходить на телефон при закрытом приложении, как сообщения.' }),
+        pushNow ? h('div', { class: 'line', style: 'margin-top:12px' },
+          h('button', { class: 'btn block', style: 'flex:1', type: 'button', text: 'проверить пуш', onclick: () => { D.pushTest().then(() => toast('пуш отправлен, он придёт через пару секунд')).catch(fail); } }),
+          h('button', { class: 'btn block', style: 'flex:1', type: 'button', text: 'выключить', onclick: () => { D.pushOff().then(() => refresh()); } })) :
+          h('button', { class: 'btn solid block', style: 'margin-top:12px', type: 'button', text: 'включить пуш-уведомления', onclick: () => { D.pushEnable().then(() => { toast('пуши включены'); refresh(); }).catch(fail); } }));
+    } else {
+      notif = card('', label('напоминания и уведомления'),
+        h('p', { class: 'cap', text: perm === 'granted' ? 'Уведомления включены. Они приходят, пока приложение открыто или недавно свёрнуто.' :
+          perm === 'denied' ? 'Уведомления запрещены в настройках телефона.' :
+            perm === 'unsupported' ? 'В этом режиме браузер не даёт уведомления. На iPhone добавь приложение на экран «Домой» (iOS 16.4 и новее).' : 'Разреши уведомления, чтобы напоминания и конец фокуса приходили системно.' }),
+        h('p', { class: 'cap', text: 'Чтобы напоминание точно сработало при закрытом приложении, открой задачу и нажми «в календарь iphone».' }),
+        perm === 'default' ? h('button', { class: 'btn solid block', style: 'margin-top:12px', type: 'button', text: 'разрешить уведомления', onclick: () => { Notification.requestPermission().then(() => refresh()); } }) : null,
+        perm === 'granted' ? h('button', { class: 'btn block', style: 'margin-top:12px', type: 'button', text: 'проверить', onclick: () => D.notify('DDX Planner', 'Уведомления работают', 'test') }) : null);
+    }
+    root.append(notif);
 
     // копия данных
     const file = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: (e) => {
@@ -776,7 +789,7 @@
     const qa = [
       ['Не работает запись голосом', 'Распознавание речи лучше работает в Safari. В приложении с экрана «Домой» iOS иногда его блокирует. Тогда нажми на микрофон на клавиатуре в поле ввода, текст разберётся так же.'],
       ['Что можно сказать', '«Напомни завтра в 9 утра позвонить врачу», «встреча с Асетом в пятницу в 15:00», «потратил 2500 на такси», «добавь в покупки молоко и хлеб», «съел плов 300 грамм», «выпил стакан воды», «запиши в категорию работа: …», «зарядка по будням».'],
-      ['Напоминание не пришло', 'Без сервера iPhone показывает уведомления, только пока приложение открыто или недавно свёрнуто. Для важного нажми в задаче «в календарь iphone», и сработает системное напоминание.'],
+      ['Напоминание не пришло', 'На iPhone пуши работают только у приложения, добавленного на экран «Домой» (iOS 16.4 и новее). Включи их в настройках: «включить пуш-уведомления». Если пуши недоступны, нажми в задаче «в календарь iphone», и сработает системное напоминание.'],
       ['Пропали данные', 'Данные хранятся на телефоне. Если удалить приложение с экрана «Домой» или очистить данные Safari, они исчезнут. Сохраняй копию в настройках.']
     ];
     root.append(card('', label('частые вопросы'), qa.map((x, i) => h('div', { style: i ? 'margin-top:16px' : 'margin-top:10px' }, h('p', { class: 'item-title', style: 'font-weight:600', text: x[0] }), h('p', { class: 'cap', text: x[1] })))));
