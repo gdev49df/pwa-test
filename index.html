@@ -3,41 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Приложения W-Dev</title>
+  <title>DDX Planner</title>
   <meta name="theme-color" content="#111112">
-  <meta name="description" content="Небольшие приложения, которые работают на iPhone без App Store.">
+  <meta http-equiv="refresh" content="0; url=planner/">
   <link rel="apple-touch-icon" href="planner/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="theme.css">
-  <style>
-    .wrap { padding: max(32px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom)); }
-    .head { padding: 0 4px 22px; }
-    .lead { margin: 12px 0 0; max-width: 34ch; font-size: 16px; color: var(--mute); }
-    .apps { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
-    a.card { display: block; padding: 20px 18px; color: inherit; text-decoration: none; }
-    a.card:active { transform: scale(.98); }
-    .n { margin: 0; font-family: var(--label); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--mute); }
-    .card h2 { margin: 8px 0 0; font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
-    .card p.d { margin: 8px 0 0; max-width: 32ch; font-size: 15px; color: var(--mute); }
-    .go { display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 12px; background: var(--paper); color: #111; font-family: var(--label); font-size: 14px; letter-spacing: .08em; }
-    .how { margin: 24px 4px 0; font-size: 14px; line-height: 1.55; color: var(--mute); }
-    .how b { color: var(--silver); font-weight: 400; }
-  </style>
+  <style>html, body { margin: 0; background: #111112; }</style>
+  <script>location.replace('planner/' + location.hash);</script>
 </head>
 <body>
-  <div class="grain"></div>
-  <main class="shell wrap">
-    <header class="head">
-      <p class="kicker">w-dev</p>
-      <h1 class="big">приложения<br>для iphone</h1>
-      <p class="lead">работают прямо из safari, без app store.</p>
-    </header>
-    <ul class="apps">
-      <li><a class="card dots" href="planner/"><p class="n">главное</p><h2>ddx planner</h2><p class="d">задачи, заметки, еда и расходы в одном месте. говоришь в микрофон, а приложение раскладывает всё по местам.</p><span class="go">открыть</span></a></li>
-      <li><a class="card dots" href="notes/"><p class="n">голос</p><h2>заметки</h2><p class="d">нажал, надиктовал, текст сохранился.</p><span class="go">открыть</span></a></li>
-      <li><a class="card dots" href="habits/"><p class="n">дни подряд</p><h2>привычки</h2><p class="d">отмечай привычку каждый день, а приложение считает серию.</p><span class="go">открыть</span></a></li>
-    </ul>
-    <p class="how"><b>как установить:</b> открой приложение в safari, нажми «поделиться» и выбери «на экран домой».</p>
-    <p class="foot">Создано @bauyrzhanov_12_</p>
-  </main>
+  <noscript><a href="planner/" style="color:#ececf0;font:16px sans-serif">открыть ddx planner</a></noscript>
 </body>
 </html>
