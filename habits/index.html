@@ -21,8 +21,8 @@
     .app { position: relative; z-index: 1; max-width: 560px; margin: 0 auto;
       padding: calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 120px); }
     .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 4px 18px; }
-    .date { margin: 6px 0 0; font-family: var(--display); font-size: 46px; font-weight: 600; line-height: 1.04; }
-    .weekday { margin: 0; font-family: var(--label); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--mute); }
+    .date { margin: 6px 0 0; font-family: var(--display); font-size: 36px; font-weight: 800; letter-spacing: -.035em; line-height: 1.08; }
+    .weekday { margin: 0; font-weight: 600; font-family: var(--label); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--mute); }
     .top > div { display: flex; flex-direction: column-reverse; }
     .edit { min-height: 44px; padding: 0 14px; background: var(--card); border: 1px solid var(--line); border-top-color: var(--line-top);
       border-radius: 14px; font-family: var(--label); font-size: 13px; letter-spacing: .08em; color: var(--silver); }
@@ -39,9 +39,9 @@
       -webkit-mask-image: radial-gradient(120% 110% at 100% 0%, #000 0%, transparent 60%); mask-image: radial-gradient(120% 110% at 100% 0%, #000 0%, transparent 60%); }
     .habit > * { position: relative; }
     .habit-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-    .habit-name { margin: 0; font-family: var(--display); font-size: 24px; line-height: 1.15; font-weight: 500; overflow-wrap: anywhere; }
+    .habit-name { margin: 0; font-family: var(--display); font-size: 20px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
     .streak { margin: 0; flex: none; text-align: right; line-height: 1; }
-    .streak-n { display: block; font-family: var(--figure); font-size: 44px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+    .streak-n { display: block; font-family: var(--figure); font-size: 38px; font-weight: 800; letter-spacing: -.04em; color: var(--ink); }
     .streak-l { display: block; margin-top: 4px; font-family: var(--label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
     .streak.zero .streak-n { color: #3a3a3e; }
     .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 18px; }
@@ -59,7 +59,7 @@
       font-family: var(--label); font-size: 13px; letter-spacing: .08em; color: var(--silver); }
     body.editing .del { display: inline-block; }
     .empty { padding: 22px 16px; background: var(--card); border: 1px solid var(--line); border-top-color: var(--line-top); border-radius: 18px; }
-    .empty-title { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 500; line-height: 1.1; }
+    .empty-title { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
     .empty-hint { margin: 10px 0 0; max-width: 34ch; font-size: 15px; line-height: 1.5; color: var(--mute); }
     .add { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; padding: 22px 14px calc(env(safe-area-inset-bottom) + 12px);
       background: linear-gradient(to bottom, rgba(17, 17, 18, 0), var(--bg) 40%); }

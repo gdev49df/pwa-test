@@ -3,22 +3,8 @@
 /* четыре шрифта, у каждого своя роль:
    Oswald: крупные заголовки, Inter Tight: основной текст, Fira Sans Extra Condensed: цифры,
    Roboto Condensed: подписи разделов, кнопки и панель */
-@font-face { font-family: "Oswald"; font-weight: 200 700; font-style: normal; font-display: swap;
-  src: url(fonts/oswald-cyrillic.woff2) format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: "Oswald"; font-weight: 200 700; font-style: normal; font-display: swap;
-  src: url(fonts/oswald-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Inter Tight"; font-weight: 100 900; font-style: normal; font-display: swap;
-  src: url(fonts/intertight-cyrillic.woff2) format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: "Inter Tight"; font-weight: 100 900; font-style: normal; font-display: swap;
-  src: url(fonts/intertight-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Fira Sans Extra Condensed"; font-weight: 600; font-style: normal; font-display: swap;
-  src: url(fonts/fira-600-cyrillic.woff2) format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: "Fira Sans Extra Condensed"; font-weight: 600; font-style: normal; font-display: swap;
-  src: url(fonts/fira-600-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Roboto Condensed"; font-weight: 400; font-style: normal; font-display: swap;
-  src: url(fonts/rc-400-cyrillic.woff2) format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-@font-face { font-family: "Roboto Condensed"; font-weight: 400; font-style: normal; font-display: swap;
-  src: url(fonts/rc-400-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Inter"; font-weight: 100 900; font-style: normal; font-display: swap; src: url(fonts/inter-cyrillic.woff2) format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: "Inter"; font-weight: 100 900; font-style: normal; font-display: swap; src: url(fonts/inter-latin.woff2) format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 
 :root {
   --bg: #111112;
@@ -31,10 +17,10 @@
   --line-top: rgba(255, 255, 255, .22);
   --silver: #d4d4d9;
   --paper: #ececf0;
-  --display: "Oswald", "DIN Condensed", "Arial Narrow", sans-serif;
-  --body: "Inter Tight", "Helvetica Neue", system-ui, sans-serif;
-  --figure: "Fira Sans Extra Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
-  --label: "Roboto Condensed", "DIN Condensed", "Arial Narrow", sans-serif;
+  --display: "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --figure: "Inter", system-ui, sans-serif;
+  --label: "Inter", system-ui, sans-serif;
   --font: var(--body);
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
@@ -42,7 +28,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 
-html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-weight: 300; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-weight: 400; }
 body {
   min-height: 100dvh; font-size: 17px; line-height: 1.4; -webkit-text-size-adjust: 100%;
   background: radial-gradient(120% 50% at 50% -8%, #1d1d20 0%, rgba(17, 17, 18, 0) 62%), var(--bg);
@@ -66,7 +52,7 @@ button { cursor: pointer; }
 
 /* шапка */
 .bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 4px 18px; }
-.kicker { margin: 0; font-family: var(--label); font-size: 11px; font-weight: 400; letter-spacing: .24em; text-transform: uppercase; color: var(--mute); }
+.kicker { margin: 0; font-family: var(--label); font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
 h1 { margin: 6px 0 0; font-family: var(--display); font-size: 46px; font-weight: 600; line-height: 1.04; letter-spacing: -.005em; }
 h1 .g { display: block; font-size: 26px; font-weight: 400; line-height: 1.15; color: var(--mute); letter-spacing: 0; }
 h1 .who { display: block; font-size: 52px; overflow-wrap: anywhere; }
@@ -130,7 +116,7 @@ a.card, .card.tap { cursor: pointer; }
 .tiny { margin: 2px 4px 0; }
 
 .btn {
-  min-height: 46px; padding: 0 18px; border-radius: 14px; font-family: var(--label); font-size: 15px; font-weight: 400; letter-spacing: .08em;
+  min-height: 46px; padding: 0 18px; border-radius: 14px; font-family: var(--label); font-size: 15px; font-weight: 400; letter-spacing: .06em;
   background: var(--card2); border: 1px solid var(--line); border-top-color: var(--line-top);
   transition: transform .25s var(--ease), background .3s, opacity .3s;
 }
@@ -145,7 +131,7 @@ a.card, .card.tap { cursor: pointer; }
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
-  min-height: 36px; padding: 0 14px; border-radius: 12px; font-family: var(--label); font-size: 13px; letter-spacing: .08em;
+  min-height: 36px; padding: 0 14px; border-radius: 12px; font-family: var(--label); font-size: 13px; letter-spacing: .06em;
   background: transparent; border: 1px solid var(--line); color: var(--mute);
   transition: background .3s, color .3s, border-color .3s;
 }
@@ -177,7 +163,7 @@ a.card, .card.tap { cursor: pointer; }
 
 .tag {
   display: inline-block; margin-right: 6px; padding: 1px 8px; border: 1px solid var(--line-top); border-radius: 8px;
-  font-family: var(--label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--silver);
+  font-family: var(--label); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--silver);
 }
 .tag.hot { background: var(--paper); border-color: var(--paper); color: #111112; font-weight: 400; }
 
@@ -281,3 +267,17 @@ a.card, .card.tap { cursor: pointer; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
   .enter > * { opacity: 1; transform: none; }
 }
+
+/* шрифт как на референсе: один гротеск Inter, жирные заголовки и цифры, мелкие подписи капсом */
+h1 { font-size: 34px; font-weight: 800; letter-spacing: -.035em; line-height: 1.08; }
+h1 .g { font-size: 17px; font-weight: 500; letter-spacing: 0; }
+h1 .who { font-size: 38px; font-weight: 800; }
+.num { font-size: 58px; font-weight: 800; letter-spacing: -.045em; line-height: .95; }
+.num small { font-size: 20px; font-weight: 600; }
+.num.sm { font-size: 38px; }
+.item-title.figure { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+.empty-title { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+.menu-row .item-title { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.sheet h2 { font-size: 23px; font-weight: 800; letter-spacing: -.03em; }
+.kicker, .section, .tab, .tag, .cap.label { font-weight: 600; }
+.btn { font-weight: 600; }

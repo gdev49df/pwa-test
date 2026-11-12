@@ -1,5 +1,5 @@
 // при изменении файлов меняй версию, чтобы кэш обновился
-const CACHE = 'ddx-v3';
+const CACHE = 'ddx-v4';
 const FILES = [
   './',
   './index.html',
@@ -8,14 +8,8 @@ const FILES = [
   './lib.js',
   './config.js',
   './manifest.json',
-  './fonts/oswald-cyrillic.woff2',
-  './fonts/oswald-latin.woff2',
-  './fonts/intertight-cyrillic.woff2',
-  './fonts/intertight-latin.woff2',
-  './fonts/fira-600-cyrillic.woff2',
-  './fonts/fira-600-latin.woff2',
-  './fonts/rc-400-cyrillic.woff2',
-  './fonts/rc-400-latin.woff2',
+  './fonts/inter-cyrillic.woff2',
+  './fonts/inter-latin.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
