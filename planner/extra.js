@@ -673,7 +673,7 @@
       ['archive', 'Архив', 'выполненное и старые заметки'],
       ['pro', 'DDX Pro', D.isLife() ? 'Founder Lifetime · навсегда' : D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф'],
       ['subscriptions', 'Тарифы', fmt(C.price.month) + ' ₸ в месяц'],
-      ['pay', 'Оплата', 'WhatsApp и код активации'],
+      ['pay', 'Оплата', 'Telegram и код активации'],
       ['prefs', 'Профиль и цели', 'имя, цели, уведомления, копия данных'],
       ['support', 'Поддержка', 'написать нам'],
       ['legal', 'Документы', 'конфиденциальность и условия']
@@ -728,7 +728,7 @@
     payPlan = 'year'; draw();
     root.append(list);
     root.append(h('button', { class: 'btn solid block', type: 'button', text: 'оформить Pro', onclick: () => go('pay') }));
-    root.append(h('p', { class: 'cap', style: 'text-align:center', text: 'Оплата через WhatsApp, код активации приходит в ответ.' }));
+    root.append(h('p', { class: 'cap', style: 'text-align:center', text: 'Оплата через Telegram, код активации приходит в ответ.' }));
     return root;
   }
 
@@ -743,14 +743,14 @@
     const amountEl = h('p', { class: 'num sm' });
     const setAmount = () => amountEl.replaceChildren(fmt(C.price[payPlan]), h('small', { text: '₸' }));
     setAmount();
-    const wa = () => 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Привет! Хочу DDX ' + (payPlan === 'life' ? 'Pro навсегда (Founder Lifetime)' : 'Pro на ' + (payPlan === 'year' ? 'год' : 'месяц')) + ' (' + fmt(C.price[payPlan]) + ' ₸).');
-    const waBtn = h('a', { class: 'btn solid block', style: 'margin-top:14px', href: wa(), target: '_blank', rel: 'noopener', text: 'написать в WhatsApp' });
+    const msgText = () => 'Привет! Хочу DDX ' + (payPlan === 'life' ? 'Pro навсегда (Founder Lifetime)' : 'Pro на ' + (payPlan === 'year' ? 'год' : 'месяц')) + ' (' + fmt(C.price[payPlan]) + ' ₸).';
+    const tg = () => 'https://t.me/' + C.support.handle + '?text=' + encodeURIComponent(msgText());
+    const tgBtn = h('a', { class: 'btn solid block', style: 'margin-top:14px', href: tg(), target: '_blank', rel: 'noopener', text: 'написать в Telegram' });
     root.append(card('dots', label('оплата pro'),
-      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год'], ['life', 'навсегда']], payPlan, (x) => { payPlan = x; setAmount(); waBtn.href = wa(); })),
-      amountEl, waBtn));
+      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год'], ['life', 'навсегда']], payPlan, (x) => { payPlan = x; setAmount(); tgBtn.href = tg(); })),
+      amountEl, tgBtn));
     root.append(card('', label('как это работает'),
-      h('ol', { class: 'steps' }, h('li', { text: 'Нажми «написать в WhatsApp». Сообщение с тарифом уже готово.' }), h('li', { text: 'В ответ пришлём реквизиты. Оплати и отправь чек.' }), h('li', { text: 'Получи код активации и введи его ниже.' })),
-      h('a', { class: 'btn block', style: 'margin-top:14px', href: 'https://t.me/' + C.support.handle, target: '_blank', rel: 'noopener', text: 'или написать в Telegram' })));
+      h('ol', { class: 'steps' }, h('li', { text: 'Нажми «написать в Telegram». Сообщение с тарифом уже готово.' }), h('li', { text: 'В ответ пришлём реквизиты. Оплати и отправь чек.' }), h('li', { text: 'Получи код активации и введи его ниже.' }))));
     const code = h('input', { class: 'field', placeholder: 'DDX-M-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'код активации' });
     const msg = h('p', { class: 'cap', role: 'status' });
     const activate = async () => {
