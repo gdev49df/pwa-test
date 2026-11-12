@@ -65,7 +65,7 @@
     timer = setInterval(() => {
       const sec = Math.floor((Date.now() - startedAt) / 1000);
       $('#live-time').textContent = Math.floor(sec / 60) + ':' + D.pad(sec % 60);
-      if (!D.isPro() && sec >= C.limits.voiceSeconds) { toast('запись остановлена: в бесплатном тарифе до 2 минут'); stopCapture(); }
+      if (!D.isPro() && sec >= C.limits.voiceSeconds) { toast('запись остановлена: в бесплатном тарифе до минуты'); stopCapture(); }
     }, 500);
     setListening(true);
     renderLive();
