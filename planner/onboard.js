@@ -22,7 +22,7 @@
     mark();
     const box = $('#onb');
     box.classList.remove('show');
-    setTimeout(() => { box.hidden = true; box.replaceChildren(); document.body.classList.remove('lock'); afterIntro(); }, 350);
+    setTimeout(() => { box.hidden = true; box.replaceChildren(); document.body.classList.remove('lock'); afterIntro(); }, 700);
   }
 
   function showOnboarding() {
@@ -54,7 +54,7 @@
   const hide = () => {
     const sp = $('#splash');
     sp.classList.add('out');
-    setTimeout(() => { sp.remove(); }, 500);
+    setTimeout(() => { sp.remove(); }, 900);
     if (seen()) afterIntro(); else showOnboarding();
   };
   const wait = Math.max(0, 700 - (Date.now() - t0));

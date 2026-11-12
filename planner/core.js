@@ -242,7 +242,7 @@
     document.body.classList.remove('typing');
     clearTimeout(sheetTimer);
     const cb = sheetOnClose; sheetOnClose = null;
-    sheetTimer = setTimeout(() => { sheet.hidden = true; $('#sheet-panel').replaceChildren(); }, 300);
+    sheetTimer = setTimeout(() => { sheet.hidden = true; $('#sheet-panel').replaceChildren(); }, 820);
     if (cb) cb();
   }
   $('#sheet').addEventListener('click', (e) => { if (e.target === $('#sheet') && !sheetLocked) closeSheet(); });
@@ -272,7 +272,7 @@
     t.hidden = false;
     t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, undo ? 4200 : 2400);
+    toastTimer = setTimeout(() => { t.hidden = true; }, undo ? 5000 : 3200);
   }
 
   const LIMIT_NAMES = {
