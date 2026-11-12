@@ -91,10 +91,19 @@
     );
 
     if (!D.isPro()) {
-      root.append(tapCard('span2 pro-row', () => go('pro'),
-        h('span', { class: 'spark' }, icon('spark')),
-        h('div', { style: 'min-width:0' }, h('p', { class: 't', text: 'DDX Pro — без лимитов' }), h('p', { class: 's', text: 'голос, задачи, заметки, списки, статистика' })),
-        h('span', { class: 'badge', text: 'PRO' })));
+      const meters = [
+        ['задачи', D.activeTasks().length, D.lim('tasks')],
+        ['заметки', D.S.notes.filter((n) => !n.archived).length, D.lim('notes')],
+        ['ии сегодня', D.usage().ai, D.C.limits.aiDay]
+      ];
+      root.append(tapCard('span2 pro-card dots', () => go('pro'),
+        h('div', { class: 'tile-head' }, label('ddx pro'), h('span', { class: 'tag hot', text: 'PRO' })),
+        h('p', { class: 'pro-title', text: 'Без лимитов' }),
+        h('p', { class: 'cap', text: 'Голос, задачи, заметки, списки, статистика и ИИ без ограничений.' }),
+        h('div', { class: 'pro-meters' }, meters.map((m) => h('div', { class: 'pro-meter' },
+          h('div', { class: 'pm-top' }, h('span', { text: m[0] }), h('b', { text: m[1] + ' / ' + m[2] })),
+          h('div', { class: 'track' }, h('div', { class: 'fill' + (m[1] >= m[2] ? ' over' : ''), style: 'width:' + Math.min(100, Math.round(m[1] / m[2] * 100)) + '%' }))))),
+        h('div', { class: 'pro-cta' }, h('span', { text: 'Посмотреть тарифы' }), icon('right'))));
     }
 
     // вечерний сброс или список на сегодня

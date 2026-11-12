@@ -619,3 +619,13 @@ html { -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
 .more-tile { min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; }
 .more-tile .tile-no { font: 500 10px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--mute); }
 .more-tile .item-title { font-size: 17px; }
+
+/* баннер pro на главной */
+.pro-card { padding: 18px 18px 16px; }
+.pro-title { margin: 10px 0 0; font-size: 32px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.pro-meters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.pro-meter .pm-top { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; }
+.pro-meter .pm-top b { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; text-transform: none; font-variant-numeric: tabular-nums; }
+.pro-meter .track { margin-top: 8px; }
+.pro-cta { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding: 13px 16px; border-radius: 14px; background: var(--paper); color: #111112; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.pro-cta svg.i { width: 18px; height: 18px; }
