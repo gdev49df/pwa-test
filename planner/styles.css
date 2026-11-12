@@ -753,3 +753,22 @@ body.standalone .onb-foot, .onb.pwa .onb-foot { padding-bottom: 0; }
   .onb-steps ol { gap: 8px; }
   .onb-steps li { padding: 10px 12px; font-size: 15px; }
 }
+
+/* страница тарифов */
+.sub-hero { padding: 22px 20px 24px; }
+.sub-brand { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 700; letter-spacing: .26em; color: var(--mute); }
+.sub-logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: #111112; }
+.sub-logo svg { width: 18px; height: 18px; }
+.sub-hero h2 { margin: 22px 0 0; font-size: 34px; font-weight: 800; letter-spacing: -.04em; line-height: 1.08; }
+.sub-hero p { margin: 14px 0 0; font-size: 16px; line-height: 1.5; color: var(--mute); }
+.perks { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.perks li { display: flex; gap: 14px; align-items: flex-start; font-size: 16px; line-height: 1.4; }
+.perks svg { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.plans { display: grid; gap: 12px; }
+.plan-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 22px 20px; text-align: left; color: var(--ink); border-radius: 22px; border: 1px solid var(--line); background: var(--card, rgba(255, 255, 255, .04)); transition: background .5s, color .5s, border-color .5s; }
+.plan-opt .po-l { display: grid; gap: 6px; }
+.plan-opt b { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.plan-opt small { font-size: 14px; color: var(--mute); }
+.plan-opt .po-r { font-size: 26px; font-weight: 800; letter-spacing: -.03em; white-space: nowrap; }
+.plan-opt.on { background: var(--paper); border-color: var(--paper); color: #111112; }
+.plan-opt.on small { color: #55555a; }

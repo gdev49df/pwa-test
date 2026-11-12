@@ -673,7 +673,7 @@
       ['archive', 'Архив', 'выполненное и старые заметки'],
       ['pro', 'DDX Pro', D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф'],
       ['subscriptions', 'Тарифы', fmt(C.price.month) + ' ₸ в месяц'],
-      ['pay', 'Оплата', 'kaspi и код активации'],
+      ['pay', 'Оплата', 'WhatsApp и код активации'],
       ['prefs', 'Профиль и цели', 'имя, цели, уведомления, копия данных'],
       ['support', 'Поддержка', 'написать нам'],
       ['legal', 'Документы', 'конфиденциальность и условия']
@@ -709,19 +709,25 @@
     const root = h('div', { class: 'stack' });
     const yearFull = C.price.month * 12;
     const off = Math.round((1 - C.price.year / yearFull) * 100);
-    root.append(card('', label('бесплатно'), h('p', { class: 'num sm' }, '0', h('small', { text: '₸' })), h('ul', { class: 'plan' }, C.freePlan.map((f) => h('li', { text: f })))));
-    const perks = ['Голос без лимитов', 'Безлимит на задачи, заметки и повторы', 'Сколько угодно напоминаний и привычек', 'Статистика за 30 и 90 дней', 'ИИ: до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото в день'];
-    const perkList = () => h('ul', { class: 'plan' }, perks.map((f) => h('li', { text: f })));
-    root.append(card('dots plan-card', label('pro на месяц'),
-      h('p', { class: 'num' }, fmt(C.price.month), h('small', { text: '₸ в месяц' })),
-      h('p', { class: 'cap', text: 'Как стакан кофе. Все ограничения сняты, отменить можно в любой момент.' }),
-      perkList()));
-    root.append(card('dots plan-card best', h('div', { class: 'tile-head' }, label('pro на год'), h('span', { class: 'tag hot', text: '−' + off + '%' })),
-      h('p', { class: 'num' }, fmt(C.price.year), h('small', { text: '₸ в год' })),
-      h('p', { class: 'cap', text: 'Это ' + fmt(Math.round(C.price.year / 12)) + ' ₸ в месяц вместо ' + fmt(C.price.month) + '. Экономия ' + fmt(yearFull - C.price.year) + ' ₸, почти три месяца в подарок.' }),
-      perkList(),
-      h('p', { class: 'cap plan-note', text: 'Самый выгодный вариант. Платишь раз в год и забываешь про лимиты.' })));
-    root.append(h('button', { class: 'btn solid block', type: 'button', text: 'как оплатить', onclick: () => go('pay') }));
+    root.append(h('section', { class: 'card dots sub-hero' },
+      h('div', { class: 'sub-brand' }, h('span', { class: 'sub-logo' }, icon('spark')), h('span', { text: 'DDX PRO' })),
+      h('h2', { text: 'Вся жизнь — без лимитов' }),
+      h('p', { text: 'Голос, фото-еда, дашборды и «Спроси свою жизнь» — без ограничений.' })));
+    const perks = ['Безлимит: голос, задачи, заметки, привычки и напоминания', 'ИИ: до ' + C.proAi.ask + ' вопросов и ' + C.proAi.food + ' фото-еды в день', 'Статистика за 30 и 90 дней, полная история', 'Ранний доступ к новым функциям'];
+    root.append(card('', label('что открывает pro'),
+      h('ul', { class: 'perks' }, perks.map((t) => h('li', null, icon('check'), h('span', { text: t }))))));
+    const plans = [
+      ['year', 'Pro · год', '≈' + fmt(Math.round(C.price.year / 12)) + ' ₸/мес · −' + off + '%', C.price.year],
+      ['month', 'Pro · месяц', 'в месяц', C.price.month]
+    ];
+    const list = h('div', { class: 'plans' });
+    const draw = () => list.replaceChildren(...plans.map((p) => h('button', { type: 'button', class: 'plan-opt' + (payPlan === p[0] ? ' on' : ''), 'aria-pressed': String(payPlan === p[0]), onclick: () => { payPlan = p[0]; draw(); } },
+      h('span', { class: 'po-l' }, h('b', { text: p[1] }), h('small', { text: p[2] })),
+      h('span', { class: 'po-r', text: fmt(p[3]) + ' ₸' }))));
+    payPlan = 'year'; draw();
+    root.append(list);
+    root.append(h('button', { class: 'btn solid block', type: 'button', text: 'оформить Pro', onclick: () => go('pay') }));
+    root.append(h('p', { class: 'cap', style: 'text-align:center', text: 'Оплата через WhatsApp, код активации приходит в ответ.' }));
     return root;
   }
 
@@ -736,16 +742,14 @@
     const amountEl = h('p', { class: 'num sm' });
     const setAmount = () => amountEl.replaceChildren(fmt(C.price[payPlan]), h('small', { text: '₸' }));
     setAmount();
-    const k = C.kaspi || {};
-    root.append(card('dots', label('перевод на kaspi'),
-      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год']], payPlan, (x) => { payPlan = x; setAmount(); })),
-      amountEl,
-      k.card ? h('div', { style: 'margin-top:8px' }, h('div', { class: 'kv' }, h('span', { class: 'muted', text: 'карта' }), h('button', { class: 'link ink', style: 'min-height:0;padding:0', type: 'button', text: k.card, onclick: () => { if (navigator.clipboard) navigator.clipboard.writeText(k.card.replace(/\s/g, '')).then(() => toast('номер скопирован')); } })),
-        k.holder ? h('div', { class: 'kv' }, h('span', { class: 'muted', text: 'получатель' }), h('span', { text: k.holder })) : null)
-        : h('p', { class: 'cap', text: 'Реквизиты для перевода пришлём в поддержке.' })));
+    const wa = () => 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Привет! Хочу DDX Pro на ' + (payPlan === 'year' ? 'год' : 'месяц') + ' (' + fmt(C.price[payPlan]) + ' ₸).');
+    const waBtn = h('a', { class: 'btn solid block', style: 'margin-top:14px', href: wa(), target: '_blank', rel: 'noopener', text: 'написать в WhatsApp' });
+    root.append(card('dots', label('оплата pro'),
+      h('div', { style: 'margin-top:10px' }, chips([['month', 'месяц'], ['year', 'год']], payPlan, (x) => { payPlan = x; setAmount(); waBtn.href = wa(); })),
+      amountEl, waBtn));
     root.append(card('', label('как это работает'),
-      h('ol', { class: 'steps' }, h('li', { text: 'Переведи сумму тарифа.' }), h('li', { text: 'Отправь чек в поддержку.' }), h('li', { text: 'Получи код активации и введи его ниже.' })),
-      h('a', { class: 'btn block', style: 'margin-top:14px', href: 'https://t.me/' + C.support.handle, target: '_blank', rel: 'noopener', text: 'написать в поддержку' })));
+      h('ol', { class: 'steps' }, h('li', { text: 'Нажми «написать в WhatsApp». Сообщение с тарифом уже готово.' }), h('li', { text: 'В ответ пришлём реквизиты. Оплати и отправь чек.' }), h('li', { text: 'Получи код активации и введи его ниже.' })),
+      h('a', { class: 'btn block', style: 'margin-top:14px', href: 'https://t.me/' + C.support.handle, target: '_blank', rel: 'noopener', text: 'или написать в Telegram' })));
     const code = h('input', { class: 'field', placeholder: 'DDX-M-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'код активации' });
     const msg = h('p', { class: 'cap', role: 'status' });
     const activate = async () => {
