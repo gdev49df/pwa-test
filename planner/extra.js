@@ -538,7 +538,7 @@
         else if (m.wait) el = h('div', { class: 'msg ai thinking', role: 'status' }, D.logo('logo think'), h('span', { text: 'думаю…' }));
         else {
           el = h('div', { class: 'msg ai' }, mdBlock(m.t));
-          if (fresh) streamWords(el);
+          if (fresh) { streamWords(el); if (m.t.length > 500) el.classList.add('plain'); }
         }
         if (fresh && m.me) el.classList.add('rise');
         box.append(el);

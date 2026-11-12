@@ -4,13 +4,14 @@
   'use strict';
   if (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const EASE = 0.07;          // чем меньше, тем дольше «доезжает» страница
-  let target = window.scrollY, cur = target, raf = 0;
+  const TAU = 170;            // мс: чем больше, тем дольше «доезжает» страница. не зависит от частоты экрана
+  let target = window.scrollY, cur = target, raf = 0, last = 0;
   const max = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
 
-  function tick() {
-    cur += (target - cur) * EASE;
-    if (Math.abs(target - cur) < 0.3) { cur = target; raf = 0; window.scrollTo(0, cur); return; }
+  function tick(now) {
+    const dt = Math.min(64, last ? now - last : 16); last = now;
+    cur += (target - cur) * (1 - Math.exp(-dt / TAU));
+    if (Math.abs(target - cur) < 0.3) { cur = target; raf = 0; last = 0; window.scrollTo(0, cur); return; }
     window.scrollTo(0, cur);
     raf = requestAnimationFrame(tick);
   }
