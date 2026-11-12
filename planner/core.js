@@ -68,6 +68,8 @@
     tasks: '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.6 2.6 4.8-5.2"/>',
     notes: '<path d="M6 3.5h8.5L18.5 7.5v13H6z"/><path d="M14.5 3.5v4h4M9.5 12h5M9.5 15.5h5"/>',
     more: '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+    share: '<path d="M12 15V3.5M8 7l4-4 4 4"/><path d="M7.5 10.5H6a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5h-1.5"/>',
+    addhome: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/>',
     keyboard: '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>'
   };
   function icon(name) {
@@ -312,6 +314,8 @@
 
   /* ---------- ии через воркер: ключа в приложении нет ---------- */
 
+  // приложение открыто с иконки на экране «Домой»?
+  const isInstalled = () => { try { return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)); } catch (e) { return false; } };
   const aiOn = () => !!(C.ai && C.ai.url);
   const AI_KIND = { ask: ['aiAsk', 'aiAskDay', 'вопросов'], food: ['aiFood', 'aiFoodDay', 'фото'] };
   const aiCap = (kind) => (isPro() ? C.proAi[kind] : C.limits[AI_KIND[kind][1]]);
@@ -727,7 +731,7 @@
     bar.classList.toggle('compact', isHub);
     if (route === 'digest') $('#back').hidden = true;
     else {
-      $('#kicker').textContent = route === 'more' ? 'Ещё' : isHub ? pad(HUBS.indexOf(route) + 1) + ' ' + TAB_LABEL[route] : pad(HUBS.indexOf(hubOf(route)) + 1) + ' ' + TAB_LABEL[hubOf(route)];
+      $('#kicker').textContent = (route === 'more' || pg.parent === 'more') ? 'Ещё' : isHub ? pad(HUBS.indexOf(route) + 1) + ' ' + TAB_LABEL[route] : pad(HUBS.indexOf(hubOf(route)) + 1) + ' ' + TAB_LABEL[hubOf(route)];
       $('#title').textContent = isHub ? '' : (typeof pg.title === 'function' ? pg.title(param) : pg.title);
       $('#bar-btn').hidden = true;
       drawBack(pg);
@@ -751,7 +755,7 @@
     dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
-    aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
+    isInstalled, aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
   });
   // Object.assign копирует значение, а не геттер, поэтому маршрут отдаём отдельно
   Object.defineProperty(D, 'route', { get: () => route });

@@ -589,6 +589,39 @@
     return root;
   }
 
+  /* ================= как поставить на экран «Домой» ================= */
+
+  function pInstall() {
+    const root = h('div', { class: 'stack' });
+    root.append(D.mark('INSTALL'));
+    const done = D.isInstalled();
+    root.append(card(done ? 'dots' : '', label(done ? 'готово' : 'зачем это нужно'),
+      h('p', { class: 'lead', text: done ? 'Приложение уже стоит на экране «Домой»' : 'С иконкой на экране «Домой» приложение открывается на весь экран, как обычное' }),
+      h('p', { class: 'cap', text: done ? 'Пуш-уведомления напоминаний работают только отсюда, так что всё в порядке.' : 'Только так на iPhone работают пуш-уведомления: напоминания будут приходить, даже когда приложение закрыто.' })));
+    const ios = [
+      ['Открой ссылку в Safari', 'Именно в Safari, не в Telegram и не в другом браузере. Если ссылка открылась в Telegram, нажми на значок компаса или «Открыть в Safari».', 'search'],
+      ['Нажми «Поделиться»', 'Квадрат со стрелкой вверх внизу экрана (на iPad вверху рядом со строкой адреса).', 'share'],
+      ['Выбери «На экран “Домой”»', 'Пролистай список действий вниз. Если пункта нет, нажми «Ещё» или «Править действия» и добавь его.', 'addhome'],
+      ['Нажми «Добавить»', 'Название можно оставить DDX Planner. Иконка появится на главном экране.', 'plus'],
+      ['Открывай с иконки', 'Закрой Safari и запускай приложение только с иконки. Разреши уведомления в настройках приложения.', 'spark']
+    ];
+    root.append(label('iphone, safari'));
+    ios.forEach((x, i) => root.append(card('step-card',
+      h('span', { class: 'step-no', text: D.pad(i + 1) }),
+      h('div', { class: 'step-body' }, h('p', { class: 'item-title', text: x[0] }), h('p', { class: 'item-meta', text: x[1] })),
+      h('span', { class: 'step-ic' }, icon(x[2])))));
+    root.append(label('android, chrome'));
+    root.append(card('', h('ol', { class: 'steps' },
+      h('li', { text: 'Открой ссылку в Chrome.' }),
+      h('li', { text: 'Нажми три точки вверху справа.' }),
+      h('li', { text: 'Выбери «Установить приложение» или «Добавить на главный экран».' }))));
+    root.append(card('flat', label('если не получается'),
+      h('p', { class: 'cap', text: 'Нужен iOS 16.4 или новее: для пушей. Если пункта «На экран Домой» нет, обнови iPhone в настройках. Если не помогло, напиши в поддержку.' }),
+      h('a', { class: 'btn block', style: 'margin-top:12px', href: 'https://t.me/' + C.support.handle, target: '_blank', rel: 'noopener', text: 'написать в поддержку' })));
+    root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
+    return root;
+  }
+
   /* ================= «Ещё»: все разделы и инструменты ================= */
 
   function pMore() {
@@ -603,6 +636,7 @@
       h('span', { class: 'tile-no', text: D.pad(i + 1) }),
       h('div', null, h('p', { class: 'item-title', text: D.HUB_NAME[r] }), h('p', { class: 'item-meta', text: hints[r] }))))));
     const tools = [
+      D.isInstalled() ? null : ['install', 'Установить на экран', 'чтобы работали пуши и как приложение'],
       ['calendar', 'Календарь', 'дни, недели, месяцы'],
       ['focus', 'Focus Mode', S.focus.active ? 'идёт фокус' : 'таймер 25, 45, 60 минут'],
       ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
@@ -774,7 +808,7 @@
       notif = card('', label('напоминания и уведомления'),
         h('p', { class: 'cap', text: perm === 'granted' ? 'Уведомления включены. Они приходят, пока приложение открыто или недавно свёрнуто.' :
           perm === 'denied' ? 'Уведомления запрещены в настройках телефона.' :
-            perm === 'unsupported' ? 'В этом режиме браузер не даёт уведомления. На iPhone добавь приложение на экран «Домой» (iOS 16.4 и новее).' : 'Разреши уведомления, чтобы напоминания и конец фокуса приходили системно.' }),
+            perm === 'unsupported' ? 'В этом режиме браузер не даёт уведомления. На iPhone добавь приложение на экран «Домой» (iOS 16.4 и новее), в разделе «Ещё» есть инструкция.' : 'Разреши уведомления, чтобы напоминания и конец фокуса приходили системно.' }),
         h('p', { class: 'cap', text: 'Чтобы напоминание точно сработало при закрытом приложении, открой задачу и нажми «в календарь iphone».' }),
         perm === 'default' ? h('button', { class: 'btn solid block', style: 'margin-top:12px', type: 'button', text: 'разрешить уведомления', onclick: () => { Notification.requestPermission().then(() => refresh()); } }) : null,
         perm === 'granted' ? h('button', { class: 'btn block', style: 'margin-top:12px', type: 'button', text: 'проверить', onclick: () => D.notify('DDX Planner', 'Уведомления работают', 'test') }) : null);
@@ -885,6 +919,7 @@
   D.page('search', 'Поиск', pSearch, 'digest');
   D.page('ask', 'Спроси ИИ', pAsk, 'digest');
   D.page('more', 'Ещё', pMore, 'digest');
+  D.page('install', 'Установка', pInstall, 'more');
   D.page('settings', 'Настройки', pMenu, 'digest');
   D.page('pro', 'DDX Pro', pPro, 'settings');
   D.page('subscriptions', 'Тарифы', pSubs, 'pro');

@@ -711,3 +711,22 @@ html { -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
 @media (prefers-reduced-motion: reduce) {
   .onb::after, .onb-no, .onb-body > *, .onb-brand svg.logo polygon, .onb-dots i.on, .onb .btn.solid, .splash::before, .splash-sub { animation: none !important; }
 }
+
+/* установка на экран «Домой» */
+.step-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; }
+.step-no { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: #111112; font: 700 13px/1 ui-monospace, "SF Mono", Menlo, monospace; }
+.step-body { flex: 1; min-width: 0; }
+.step-body .item-title { margin: 0; }
+.step-body .item-meta { margin: 4px 0 0; line-height: 1.45; }
+.step-ic { flex: none; color: var(--silver); }
+.step-ic svg.i { width: 28px; height: 28px; }
+.install-card { display: flex; align-items: center; gap: 14px; padding: 14px 12px 14px 16px; }
+.install-ic { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--paper); color: #111112; }
+.install-ic svg.i { width: 22px; height: 22px; }
+.install-card .item-title, .install-card .item-meta { margin: 0; }
+.install-card .item-meta { margin-top: 3px; font-size: 13px; }
+.install-x { flex: none; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--mute); }
+.install-x svg.i { width: 18px; height: 18px; }
+
+a.btn { color: var(--ink); text-decoration: none; display: flex; align-items: center; justify-content: center; }
+a.btn.solid { color: #111112; }

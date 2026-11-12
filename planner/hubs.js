@@ -23,6 +23,15 @@
     ));
     requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = st.pct + '%'; }));
 
+    // подсказка: поставить на экран «Домой» (пока приложение открыто в браузере)
+    let hideInst = false; try { hideInst = localStorage.getItem('ddx-inst-x') === '1'; } catch (e) { /* покажем */ }
+    if (!D.isInstalled() && !hideInst) {
+      root.append(tapCard('span2 install-card', () => go('install'),
+        h('span', { class: 'install-ic' }, icon('addhome')),
+        h('div', { style: 'min-width:0;flex:1' }, h('p', { class: 'item-title', text: 'Поставь на экран «Домой»' }), h('p', { class: 'item-meta', text: 'Так работают пуши и приложение открывается на весь экран. Покажу как.' })),
+        h('button', { class: 'install-x', type: 'button', 'aria-label': 'скрыть', onclick: (ev) => { ev.stopPropagation(); try { localStorage.setItem('ddx-inst-x', '1'); } catch (e) { /* нет */ } refresh(); } }, icon('close'))));
+    }
+
     // последняя запись
     if (S.last && Date.now() - S.last.t < 3 * 86400000) {
       root.append(card('span2 last', h('span', { class: 'bullet', 'aria-hidden': 'true' }),
