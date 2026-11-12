@@ -34,7 +34,7 @@
     const fab = $('#fab');
     fab.classList.toggle('on', on);
     fab.setAttribute('aria-pressed', on ? 'true' : 'false');
-    fab.replaceChildren(icon(on ? 'stop' : 'mic'));
+    fab.replaceChildren(on ? icon('stop') : D.logo('logo'));
     fab.setAttribute('aria-label', on ? 'остановить запись' : 'быстрый ввод голосом');
     $('#live').hidden = !on;
     clearInterval(hintTimer);
@@ -281,9 +281,12 @@
   /* ---------- запуск ---------- */
 
   D.buildTabs();
-  $('#fab').append(icon('mic'));
+  $('#fab').append(D.logo('logo'));
+  D.askName = askName;
+  D.startCapture = startCapture;
+  D.stopCapture = stopCapture;
   D.render(true);
-  if (!D.S.name) askName();
+  // имя спрашивает onboard.js после заставки и знакомства
   D.checkReminders();
   setInterval(D.checkReminders, 15000);
   // часы фокуса на главной

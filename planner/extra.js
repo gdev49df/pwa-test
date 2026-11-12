@@ -171,6 +171,7 @@
   let habitEdit = false;
   function pHabits() {
     const S = D.S, root = h('div', { class: 'stack' }), t0 = today();
+    root.append(D.mark('RITUALS'));
     const input = h('input', { class: 'field', placeholder: 'зарядка, 2 литра воды, 10 минут чтения', maxlength: '50', enterkeyhint: 'done', 'aria-label': 'новая привычка' });
     const add = () => { const v = input.value.trim(); if (!v) { input.focus(); return; } if (D.addHabit(L.cap(v))) { toast('привычка добавлена'); refresh(); } };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
@@ -450,7 +451,6 @@
     const rows = [
       ['calendar', 'Календарь', 'дни, недели, месяцы'],
       ['focus', 'Focus Mode', S.focus.active ? 'идёт фокус' : 'таймер 25, 45, 60 минут'],
-      ['habits', 'Привычки', S.habits.length ? S.habits.length + ' ' + plural(S.habits.length, 'привычка', 'привычки', 'привычек') : 'серии дней подряд'],
       ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
       ['stats', 'Статистика', 'задачи, деньги, фокус, привычки'],
       ['timeline', 'Timeline', 'лента событий по дням'],
@@ -460,13 +460,14 @@
       ['pro', 'DDX Pro', D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф'],
       ['subscriptions', 'Тарифы', fmt(C.price.month) + ' ₸ в месяц'],
       ['pay', 'Оплата', 'kaspi и код активации'],
-      ['settings', 'Настройки', 'имя, цели, уведомления, копия данных'],
+      ['prefs', 'Профиль и цели', 'имя, цели, уведомления, копия данных'],
       ['support', 'Поддержка', 'написать нам'],
       ['legal', 'Документы', 'конфиденциальность и условия']
     ];
     const root = h('div', { class: 'stack' });
+    root.append(D.mark('SETTINGS'));
     rows.forEach((r, i) => root.append(tapCard('menu-row', () => go(r[0]),
-      h('span', { class: 'n', text: D.pad(i + 6) }),
+      h('span', { class: 'n', text: D.pad(i + 1) }),
       h('div', null, h('p', { class: 'item-title', text: r[1] }), h('p', { class: 'item-meta', text: r[2] })),
       h('span', { class: 'arrow' }, icon('right')))));
     root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
@@ -680,12 +681,12 @@
   D.page('stats', 'Статистика', pStats, 'digest');
   D.page('timeline', 'Timeline', pTimeline, 'digest');
   D.page('search', 'Поиск', pSearch, 'digest');
-  D.page('menu', 'Меню', pMenu, 'digest');
-  D.page('pro', 'DDX Pro', pPro, 'menu');
+  D.page('settings', 'Настройки', pMenu, 'digest');
+  D.page('pro', 'DDX Pro', pPro, 'settings');
   D.page('subscriptions', 'Тарифы', pSubs, 'pro');
   D.page('pay', 'Оплата', pPay, 'subscriptions');
-  D.page('settings', 'Настройки', pSettings, 'menu');
-  D.page('archive', 'Архив', pArchive, 'menu');
-  D.page('support', 'Поддержка', pSupport, 'menu');
-  D.page('legal', 'Документы', pLegal, 'menu');
+  D.page('prefs', 'Профиль и цели', pSettings, 'settings');
+  D.page('archive', 'Архив', pArchive, 'settings');
+  D.page('support', 'Поддержка', pSupport, 'settings');
+  D.page('legal', 'Документы', pLegal, 'settings');
 })();

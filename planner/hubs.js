@@ -13,15 +13,13 @@
 
     // приветствие и прогресс дня
     const fill = h('div', { class: 'fill' });
-    const menuBtn = h('button', { class: 'icon-btn menu-btn', type: 'button', 'aria-label': 'меню', onclick: () => go('menu') }, icon('menu'));
     root.append(card('span2 hello dots',
       label(D.WEEKDAYS[now.getDay()]),
       h('p', { class: 'date', text: now.getDate() + ' ' + D.MONTHS[now.getMonth()] }),
       h('p', { class: 'greet', text: L.greeting(now) + (S.name ? ', ' + S.name : '') }),
       h('div', { class: 'line', style: 'margin-top:16px;gap:12px' },
         h('div', { class: 'track', style: 'flex:1;margin:0' }, fill),
-        h('span', { class: 'when', text: st.total ? 'день ' + st.pct + '%' : 'день свободен' })),
-      menuBtn
+        h('span', { class: 'when', text: st.total ? 'день ' + st.pct + '%' : 'день свободен' }))
     ));
     requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = st.pct + '%'; }));
 
@@ -33,24 +31,24 @@
           h('p', { class: 't', text: S.last.text }))));
     }
 
-    // задачи
+    // задачи (встречи считаются отдельно)
     const act = D.activeTasks().filter((t) => t.kind !== 'meeting');
-    root.append(tapCard('tile', () => go('tasks'),
-      label('задачи'),
-      h('p', { class: 'num', text: String(act.length) }),
-      h('p', { class: 'cap', text: act.length ? plural(act.length, 'активная', 'активных', 'активных') + (st.open ? ', сегодня ' + st.open : '') : 'задач нет' })));
+    root.append(tapCard('tile', () => (act.length ? go('tasks') : D.taskSheet(null)),
+      label('tasks'),
+      act.length ? h('p', { class: 'num sm', text: String(act.length) }) : h('span', { class: 'plus' }, icon('plus')),
+      h('p', { class: 'cap', text: act.length ? plural(act.length, 'активная', 'активных', 'активных') + (st.open ? ', сегодня ' + st.open : '') : 'добавить первую задачу' })));
 
     // заметки
-    const notes = S.notes.filter((n) => !n.archived);
+    const notes = S.notes.filter((n) => !n.archived && !n.diary);
     root.append(tapCard('tile', () => go('notes'),
-      label('заметки'),
-      notes.length ? h('p', { class: 'num', text: String(notes.length) }) : h('span', { class: 'plus' }, icon('plus')),
+      label('notes'),
+      notes.length ? h('p', { class: 'num sm', text: String(notes.length) }) : h('span', { class: 'plus' }, icon('plus')),
       h('p', { class: 'cap clamp', style: '-webkit-line-clamp:1', text: notes.length ? notes[0].text : 'мысль или запись' })));
 
     // встречи
     const meet = D.activeTasks().filter((t) => t.kind === 'meeting' && t.due && t.due >= t0).sort((a, b) => D.dueTs(a) - D.dueTs(b))[0];
-    root.append(tapCard('tile', () => (meet ? D.taskSheet(meet) : D.taskSheet(null, { kind: 'meeting', due: t0 })),
-      label('встречи'),
+    root.append(tapCard('tile', () => (meet ? go('meetings') : D.taskSheet(null, { kind: 'meeting', due: t0 })),
+      label('meetings'),
       meet ? h('p', { class: 'lead clamp', style: '-webkit-line-clamp:2', text: meet.title }) : h('span', { class: 'plus' }, icon('plus')),
       h('p', { class: 'cap', text: meet ? D.dueLabel(meet.due, meet.time) : 'запланировать встречу' })));
 
@@ -59,8 +57,8 @@
     const water = S.water[t0] || 0;
     const wfill = h('div', { class: 'fill' });
     root.append(tapCard('tile', () => go('food'),
-      label('еда'),
-      kcal ? h('p', { class: 'num sm' }, fmt(kcal), h('small', { text: 'ккал' })) : h('p', { class: 'lead', text: 'Запиши, что съел' }),
+      label('food'),
+      kcal ? h('p', { class: 'num sm' }, fmt(kcal), h('small', { text: 'ккал' })) : h('p', { class: 'lead', text: 'Сфоткай еду' }),
       h('div', null, h('div', { class: 'track' }, wfill), h('p', { class: 'cap', style: 'font-size:12px', text: fmt(water) + ' / ' + fmt(S.goals.water) + ' мл' }))));
     requestAnimationFrame(() => requestAnimationFrame(() => { wfill.style.width = Math.min(100, water / S.goals.water * 100) + '%'; }));
 
@@ -68,22 +66,36 @@
     const month = D.monthMoney();
     const spentMonth = month.filter((m) => m.kind === 'exp').reduce((a, m) => a + m.amount, 0);
     const spentToday = month.filter((m) => m.kind === 'exp' && L.dkey(new Date(m.t)) === t0).reduce((a, m) => a + m.amount, 0);
+    const incMonth = month.filter((m) => m.kind === 'inc').reduce((a, m) => a + m.amount, 0);
     if (S.budget > 0) {
       const bfill = h('div', { class: 'fill' + (spentMonth > S.budget ? ' over' : '') });
       root.append(tapCard('span2', () => go('money'),
-        h('div', { class: 'tile-head' }, label('деньги'), h('span', { class: 'when', text: 'сегодня −' + fmt(spentToday) + ' ₸' })),
+        h('div', { class: 'tile-head' }, label('money'), h('span', { class: 'when', text: 'сегодня −' + fmt(spentToday) + ' ₸' })),
         h('p', { class: 'num sm' }, fmt(spentMonth), h('small', { text: '₸ из ' + fmt(S.budget) })),
         h('div', { class: 'track' }, bfill),
         h('p', { class: 'cap', text: spentMonth <= S.budget ? 'осталось ' + fmt(S.budget - spentMonth) + ' ₸ на месяц' : 'бюджет превышен на ' + fmt(spentMonth - S.budget) + ' ₸' })));
       requestAnimationFrame(() => requestAnimationFrame(() => { bfill.style.width = Math.min(100, spentMonth / S.budget * 100) + '%'; }));
     } else {
       root.append(tapCard('span2', () => go('money'),
-        h('div', { class: 'tile-head' }, label('деньги'), spentToday ? h('span', { class: 'when', text: 'сегодня −' + fmt(spentToday) + ' ₸' }) : null),
-        h('p', { class: 'lead', text: 'Настрой бюджет →' }),
+        h('div', { class: 'tile-head' }, label('money'), spentToday ? h('span', { class: 'when', text: 'сегодня −' + fmt(spentToday) + ' ₸' }) : null),
+        h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: incMonth > 0 ? 'Свободно ' + fmt(incMonth - spentMonth) + ' ₸' : 'Настрой бюджет' }),
         month.length ? h('p', { class: 'cap', text: 'за месяц потрачено ' + fmt(spentMonth) + ' ₸' }) : null));
     }
 
-    // вечерний сброс
+    // тренды и поиск
+    root.append(
+      tapCard('tile slim', () => go('stats'), label('тренды'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'твоя статистика' })),
+      tapCard('tile slim', () => go('search'), label('✦ поиск'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'найди любую запись' }))
+    );
+
+    if (!D.isPro()) {
+      root.append(tapCard('span2 pro-row', () => go('pro'),
+        h('span', { class: 'spark' }, icon('spark')),
+        h('div', { style: 'min-width:0' }, h('p', { class: 't', text: 'DDX Pro — без лимитов' }), h('p', { class: 's', text: 'голос, задачи, заметки, списки, статистика' })),
+        h('span', { class: 'badge', text: 'PRO' })));
+    }
+
+    // вечерний сброс или список на сегодня
     const pending = S.tasks.filter((t) => !t.done && t.due && t.due <= t0);
     if (now.getHours() >= S.settings.resetHour && pending.length) {
       root.append(card('span2 dots',
@@ -99,7 +111,6 @@
           } }),
           h('button', { class: 'btn', style: 'flex:1', type: 'button', text: 'разобрать', onclick: () => go('reset') }))));
     } else if (pending.length) {
-      // на сегодня
       const list = card('span2', h('div', { class: 'tile-head' }, label('на сегодня'), h('span', { class: 'when', text: st.done + ' из ' + st.total })));
       pending.sort(D.TASK_SORT).slice(0, 4).forEach((t) => list.append(h('div', { class: 'item', style: 'margin-top:12px' },
         h('button', { class: 'check' + (t.pri ? ' p' + t.pri : ''), type: 'button', 'aria-label': 'выполнить: ' + t.title, onclick: () => { D.toggleTask(t); refresh(); } }),
@@ -108,15 +119,14 @@
       root.append(list);
     }
 
-    // привычки
+    // ритуалы и focus mode
     const hab = S.habits;
     const hdone = hab.filter((x) => x.days[t0]).length;
     root.append(tapCard('tile', () => go('habits'),
-      label('привычки'),
+      label('rituals'),
       hab.length ? h('p', { class: 'num sm' }, hdone + '/' + hab.length) : h('span', { class: 'plus' }, icon('plus')),
       h('p', { class: 'cap', text: hab.length ? (hdone === hab.length ? 'все отмечены' : 'отмечено сегодня') : 'трекер привычек' })));
 
-    // focus mode
     const f = S.focus.active;
     const ftask = f && S.tasks.find((x) => x.id === f.taskId);
     root.append(tapCard('tile', () => go('focus'),
@@ -143,25 +153,14 @@
     }
     root.append(tapCard('span2', () => go('calendar'), h('div', { class: 'tile-head' }, label('календарь'), h('span', { class: 'when', text: D.MONTHS_NOM[now.getMonth()] })), strip));
 
-    // остальные разделы
+    // списки и лента
     const lists = S.lists, open = lists.reduce((a, l) => a + l.items.filter((x) => !x.done).length, 0);
     root.append(
       tapCard('tile', () => go('lists'), label('умные списки'),
         lists.length ? h('p', { class: 'num sm', text: String(open) }) : h('span', { class: 'plus' }, icon('plus')),
         h('p', { class: 'cap', text: lists.length ? 'пунктов в ' + lists.length + ' ' + plural(lists.length, 'списке', 'списках', 'списках') : 'покупки, книги, фильмы' })),
-      tapCard('tile', () => go('stats'), label('статистика'),
-        h('p', { class: 'num sm', text: String(S.tasks.filter((t) => t.done && t.doneAt > Date.now() - 7 * 86400000).length) }),
-        h('p', { class: 'cap', text: 'задач за 7 дней' })),
-      tapCard('tile', () => go('timeline'), label('timeline'), h('p', { class: 'lead', text: 'Лента дня' }), h('p', { class: 'cap', text: 'всё, что было, по порядку' })),
-      tapCard('tile', () => go('search'), label('поиск'), h('span', { class: 'plus' }, icon('search')), h('p', { class: 'cap', text: 'заметки, задачи, списки' }))
+      tapCard('tile', () => go('timeline'), label('timeline'), h('p', { class: 'lead', text: 'Лента дня' }), h('p', { class: 'cap', text: 'всё, что было, по порядку' }))
     );
-
-    if (!D.isPro()) {
-      root.append(tapCard('span2', () => go('pro'),
-        h('div', { class: 'tile-head' }, label('ddx pro'), h('span', { class: 'when', text: fmt(C.price.month) + ' ₸ / мес' })),
-        h('p', { class: 'lead', text: 'Сними все ограничения' }),
-        h('p', { class: 'cap', text: 'Безлимит на голос, задачи, заметки, списки и статистику.' })));
-    }
     return root;
   }
 
@@ -175,63 +174,72 @@
 
   D.TASK_SORT = (a, b) => (String(a.due || '9') .localeCompare(String(b.due || '9'))) || (String(a.time || '99').localeCompare(String(b.time || '99'))) || (b.pri - a.pri) || (b.created - a.created);
 
-  let taskFilter = 'active';
+  let taskFilter = 'all', taskTab = 'active';
 
-  function pTasks() {
-    const S = D.S, root = h('div', { class: 'stack' }), t0 = today();
-
-    // умный ввод: «позвонить маме завтра в 10», «отчёт каждый второй понедельник»
-    const input = h('input', { class: 'field', placeholder: 'новая задача', maxlength: '140', enterkeyhint: 'done', 'aria-label': 'новая задача' });
-    const hint = h('p', { class: 'cap', style: 'margin:8px 2px 0;min-height:19px' });
+  // строка ввода с умным разбором: «позвонить маме завтра в 10», «отчёт каждый второй понедельник»
+  function smartInput(opts) {
+    const input = h('input', { class: 'field', placeholder: opts.placeholder, maxlength: '140', enterkeyhint: 'done', 'aria-label': opts.placeholder });
+    const hint = h('p', { class: 'cap', style: 'margin:8px 6px 0;min-height:19px' });
+    const go1 = h('button', { class: 'ib go', type: 'button', 'aria-label': opts.add, hidden: true, onclick: () => add() }, icon('plus'));
+    const mic = h('button', { class: 'ib mic', type: 'button', 'aria-label': 'сказать голосом', onclick: () => { if (D.startCapture) D.startCapture(); } }, icon('mic'));
     const parse = () => {
       const v = input.value.trim();
-      if (!v) { hint.textContent = 'можно сразу с датой: «отчёт в пятницу в 10», «зарядка по будням»'; return null; }
+      go1.hidden = !v; mic.hidden = !!v;
+      if (!v) { hint.textContent = opts.example; return null; }
       const p = L.parseCapture(v, new Date());
       const isT = p.type === 'task' || p.type === 'meeting';
       const bits = [];
-      if (isT && p.type === 'meeting') bits.push('встреча');
       if (isT && p.due) bits.push(D.dueLabel(p.due, p.time));
       if (isT && p.repeat) bits.push(L.repeatLabel(p.repeat));
       if (isT && p.remind) bits.push('с напоминанием');
       hint.textContent = bits.length ? '→ ' + bits.join(', ') : 'без срока';
-      return isT ? p : { type: 'task', text: L.cap(v) };
+      return isT ? p : { type: opts.kind, text: L.cap(v) };
     };
-    input.addEventListener('input', parse);
     const add = () => {
       const p = parse();
       if (!p) { input.focus(); return; }
-      const t = D.addTask({ title: p.text || L.cap(input.value.trim()), kind: p.type === 'meeting' ? 'meeting' : 'task', due: p.due, time: p.time, pri: p.pri, repeat: p.repeat, remind: p.remind });
-      if (t) { toast(t.due ? 'добавлено на ' + D.dueLabel(t.due, t.time) : 'задача добавлена'); refresh(); }
+      const t = D.addTask({ title: p.text || L.cap(input.value.trim()), kind: opts.kind, due: p.due, time: p.time, pri: p.pri, repeat: p.repeat, remind: p.remind });
+      if (t) { toast(opts.kind === 'meeting' ? (t.due ? 'встреча на ' + D.dueLabel(t.due, t.time) : 'встреча добавлена') : (t.due ? 'добавлено на ' + D.dueLabel(t.due, t.time) : 'задача добавлена')); refresh(); }
     };
+    input.addEventListener('input', parse);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
     parse();
-    root.append(card('',
-      h('div', { class: 'line' }, input, h('button', { class: 'btn solid', type: 'button', 'aria-label': 'добавить задачу', onclick: add }, icon('plus'))),
-      hint,
-      h('div', { class: 'links' },
-        h('button', { class: 'link', type: 'button', text: 'подробнее', onclick: () => D.taskSheet(null, { title: input.value.trim() }) }),
-        h('button', { class: 'link', type: 'button', text: 'встреча', onclick: () => D.taskSheet(null, { kind: 'meeting', due: t0 }) }),
-        h('button', { class: 'link', type: 'button', text: 'календарь', onclick: () => go('calendar') }),
-        h('button', { class: 'link', type: 'button', text: 'сброс дня', onclick: () => go('reset') }))));
+    return [card('cap-in', input, go1, mic), hint];
+  }
 
-    const act = D.activeTasks();
+  function utabs(items, cur, onpick) {
+    return h('div', { class: 'utabs', role: 'tablist' }, items.map((it) => h('button', {
+      class: 'utab' + (it[0] === cur ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': it[0] === cur ? 'true' : 'false', text: it[1], onclick: () => onpick(it[0])
+    })));
+  }
+  const mark = (t) => h('p', { class: 'mark', 'aria-hidden': 'true', text: t + '©' });
+  D.mark = mark;
+  D.utabs = utabs;
+
+  function pTasks() {
+    const S = D.S, root = h('div', { class: 'stack' }), t0 = today();
+    root.append(utabs([['active', 'Активные'], ['done', 'Готово']], taskTab, (k) => { taskTab = k; refresh(); }));
+    if (taskTab === 'active') root.append.apply(root, smartInput({ kind: 'task', placeholder: 'Новая задача…', add: 'добавить задачу', example: 'можно сразу с датой: «отчёт в пятницу в 10», «зарядка по будням»' }));
+
+    const act = D.activeTasks().filter((t) => t.kind !== 'meeting');
     const ll = D.limitLine('активных задач', act.length, 'tasks');
-    if (ll) root.append(ll);
+    if (ll && taskTab === 'active') root.append(ll);
+    root.append(mark('TASKS'));
 
-    root.append(chips([['active', 'все'], ['today', 'сегодня'], ['meet', 'встречи'], ['repeat', 'повторы'], ['remind', 'напоминания'], ['done', 'выполнено']], taskFilter, (k) => { taskFilter = k; refresh(); }, 'scroll'));
-
-    const week = L.dkey(L.addDays(new Date(), 7));
-    let groups;
-    if (taskFilter === 'done') {
-      const done = S.tasks.filter((t) => t.done).sort((a, b) => b.doneAt - a.doneAt).slice(0, 60);
-      groups = [['сегодня', done.filter((t) => t.doneKey === t0)], ['раньше', done.filter((t) => t.doneKey !== t0)]];
+    if (taskTab === 'done') {
+      const done = S.tasks.filter((t) => t.done && t.kind !== 'meeting').sort((a, b) => b.doneAt - a.doneAt).slice(0, 60);
+      const groups = [['сегодня', done.filter((t) => t.doneKey === t0)], ['раньше', done.filter((t) => t.doneKey !== t0)]];
+      let any = false;
+      groups.forEach((g) => { if (!g[1].length) return; any = true; root.append(section(g[0], h('span', { class: 'when', text: String(g[1].length) })), card('', g[1].map(taskItem))); });
+      if (!any) root.append(h('p', { class: 'mark-cap', text: 'Пока ничего не выполнено.' }));
     } else {
+      if (act.length) root.append(chips([['all', 'все'], ['today', 'сегодня'], ['repeat', 'повторы'], ['remind', 'напоминания']], taskFilter, (k) => { taskFilter = k; refresh(); }, 'scroll'));
+      const week = L.dkey(L.addDays(new Date(), 7));
       let list = act.slice().sort(D.TASK_SORT);
       if (taskFilter === 'today') list = list.filter((t) => t.due && t.due <= t0);
-      if (taskFilter === 'meet') list = list.filter((t) => t.kind === 'meeting');
       if (taskFilter === 'repeat') list = list.filter((t) => t.repeat);
       if (taskFilter === 'remind') list = list.filter((t) => t.remind);
-      groups = [
+      const groups = [
         ['просрочено', list.filter((t) => t.due && t.due < t0)],
         ['сегодня', list.filter((t) => t.due === t0)],
         ['завтра', list.filter((t) => t.due === tomorrow())],
@@ -239,20 +247,40 @@
         ['позже', list.filter((t) => t.due && t.due > week)],
         ['без срока', list.filter((t) => !t.due)]
       ];
-      if (taskFilter === 'active') groups.push(['выполнено сегодня', S.tasks.filter((t) => t.done && t.doneKey === t0)]);
+      let any = false;
+      groups.forEach((g) => {
+        if (!g[1].length) return;
+        any = true;
+        root.append(section(g[0], h('span', { class: 'when', text: String(g[1].length) })), card('', g[1].map(taskItem)));
+      });
+      if (!any) root.append(h('p', { class: 'mark-cap', text: act.length ? 'Здесь пусто. Попробуй другой фильтр.' : 'Добавьте первую задачу выше.' }));
+      else root.append(label('свайп влево: на завтра, вправо: готово', 'tiny'));
+      root.append(h('div', { class: 'links' },
+        h('button', { class: 'link', type: 'button', text: 'календарь', onclick: () => go('calendar') }),
+        h('button', { class: 'link', type: 'button', text: 'сброс дня', onclick: () => go('reset') }),
+        h('button', { class: 'link', type: 'button', text: 'focus mode', onclick: () => go('focus') })));
+      root.append(h('button', { class: 'fab-add', type: 'button', 'aria-label': 'новая задача с подробностями', onclick: () => D.taskSheet(null) }, icon('plus')));
     }
-    let any = false;
-    groups.forEach((g) => {
-      if (!g[1].length) return;
-      any = true;
-      root.append(section(g[0], h('span', { class: 'when', text: String(g[1].length) })), card('', g[1].map(taskItem)));
-    });
-    if (!any) {
-      root.append(empty(taskFilter === 'active' ? 'задач пока нет' : 'здесь пусто',
-        taskFilter === 'active' ? 'Напиши выше или нажми на микрофон и скажи: «напомни завтра в 9 утра позвонить врачу».' : 'Попробуй другой фильтр.'));
-    } else if (taskFilter !== 'done') {
-      root.append(label('свайп влево: на завтра, вправо: готово', 'tiny'));
-    }
+    return root;
+  }
+
+  /* ================= встречи ================= */
+
+  let meetTab = 'up';
+
+  function pMeetings() {
+    const root = h('div', { class: 'stack' }), now = Date.now();
+    root.append(h('div', { class: 'stack' }, smartInput({ kind: 'meeting', placeholder: 'Новая встреча…', add: 'добавить встречу', example: 'например: «встреча с Асетом в пятницу в 15:00»' })));
+    root.append(utabs([['up', 'Предстоящие'], ['past', 'Прошедшие']], meetTab, (k) => { meetTab = k; refresh(); }));
+    root.append(mark('MEETINGS'));
+    const all = D.S.tasks.filter((t) => t.kind === 'meeting');
+    const isPast = (t) => t.done || (t.due && D.dueTs(t) < now);
+    const list = meetTab === 'up'
+      ? all.filter((t) => !isPast(t)).sort((a, b) => (D.dueTs(a) || 9e15) - (D.dueTs(b) || 9e15))
+      : all.filter(isPast).sort((a, b) => (D.dueTs(b) || b.doneAt || 0) - (D.dueTs(a) || a.doneAt || 0)).slice(0, 60);
+    if (!list.length) root.append(h('p', { class: 'mark-cap', text: meetTab === 'up' ? 'Запланируйте встречу выше.' : 'Прошедших встреч пока нет.' }));
+    else root.append(card('', list.map(taskItem)));
+    root.append(h('button', { class: 'fab-add', type: 'button', 'aria-label': 'новая встреча с подробностями', onclick: () => D.taskSheet(null, { kind: 'meeting', due: today() }) }, icon('plus')));
     return root;
   }
 
@@ -284,6 +312,7 @@
     if (!t.done) swipe(row, t);
     return row;
   }
+  D.taskItem = taskItem;
 
   // свайп: влево перенос на завтра, вправо выполнено
   function swipe(row, t) {
@@ -433,46 +462,58 @@
 
   /* ================= заметки ================= */
 
-  let noteCat = '', noteQuery = '', editingNote = null;
+  let noteCat = '', noteQuery = '', editingNote = null, noteTab = 'ideas', noteSearch = false;
 
   function pNotes() {
-    const S = D.S, root = h('div', { class: 'stack' });
-    const area = h('textarea', { class: 'area', rows: '3', placeholder: 'мысль, идея, запись', 'aria-label': 'текст заметки' });
-    const sel = h('select', { class: 'select', 'aria-label': 'категория', value: noteCat },
-      h('option', { value: '', text: 'без категории' }), S.cats.map((c) => h('option', { value: c, text: c })));
+    const S = D.S, root = h('div', { class: 'stack' }), diary = noteTab === 'diary';
+    root.append(utabs([['ideas', 'Идеи'], ['diary', 'Дневник']], noteTab, (k) => { noteTab = k; noteCat = ''; refresh(); }));
+
+    // ввод: слово с # становится категорией
+    const input = h('input', { class: 'field', placeholder: diary ? 'Как прошёл день…' : 'Мысль, заметка, идея… #тег', enterkeyhint: 'done', 'aria-label': diary ? 'запись в дневник' : 'текст заметки' });
+    const send = h('button', { class: 'ib go', type: 'button', 'aria-label': 'сохранить', hidden: true, onclick: () => add() }, icon('plus'));
+    const mic = h('button', { class: 'ib mic', type: 'button', 'aria-label': 'сказать голосом', onclick: () => { if (D.startCapture) D.startCapture(); } }, icon('mic'));
+    const find = h('button', { class: 'ib', type: 'button', 'aria-label': 'поиск по заметкам', onclick: () => { noteSearch = !noteSearch; refresh(); } }, icon('search'));
+    input.addEventListener('input', () => { const v = !!input.value.trim(); send.hidden = !v; mic.hidden = v; });
     const add = () => {
-      const text = area.value.trim();
-      if (!text) { area.focus(); return; }
-      if (D.addNote(L.cap(text), sel.value)) { toast('заметка сохранена'); refresh(); }
+      let text = input.value.trim();
+      if (!text) { input.focus(); return; }
+      let cat = '';
+      const tag = text.match(/(^|\s)#([\p{L}\p{N}_-]+)/u);
+      if (tag && !diary) { cat = D.addCat(tag[2]); text = text.replace(/(^|\s)#[\p{L}\p{N}_-]+/gu, ' ').replace(/\s+/g, ' ').trim(); }
+      if (!text) { toast('после тега нужен текст'); return; }
+      const n = D.addNote(L.cap(text), cat);
+      if (n) { if (diary) { n.diary = true; save(); } toast(diary ? 'запись в дневнике' : 'заметка сохранена'); refresh(); }
     };
-    root.append(card('', area,
-      h('div', { class: 'line', style: 'margin-top:8px' }, sel, h('button', { class: 'btn solid', type: 'button', text: 'сохранить', onclick: add })),
-      h('div', { class: 'links' },
-        h('button', { class: 'link', type: 'button', text: 'категории', onclick: catSheet }),
-        h('button', { class: 'link', type: 'button', text: 'умные списки', onclick: () => go('lists') }),
-        h('button', { class: 'link', type: 'button', text: 'архив', onclick: () => go('archive') }))));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    root.append(card('cap-in', input, send, mic, find));
 
-    const count = S.notes.filter((n) => !n.archived).length;
-    const ll = D.limitLine('заметок', count, 'notes');
+    const mine = S.notes.filter((n) => !n.archived && !!n.diary === diary);
+    const ll = D.limitLine('заметок', S.notes.filter((n) => !n.archived).length, 'notes');
     if (ll) root.append(ll);
+    root.append(mark(diary ? 'DIARY' : 'INBOX'));
 
-    const search = h('input', { class: 'field', type: 'search', placeholder: 'поиск по тексту, категории, дате', value: noteQuery, 'aria-label': 'поиск по заметкам' });
     const box = h('div', { class: 'stack' });
-    search.addEventListener('input', () => { noteQuery = search.value; fillNotes(box); });
-    root.append(search);
-    if (S.cats.length) {
-      root.append(chips([['', 'все']].concat(S.cats.map((c) => [c, c + ' ' + S.notes.filter((n) => !n.archived && n.cat === c).length])), noteCat, (k) => { noteCat = k; fillNotes(box); }, 'scroll'));
+    if (noteSearch || noteQuery) {
+      const search = h('input', { class: 'field', type: 'search', placeholder: 'поиск по тексту, категории, дате', value: noteQuery, 'aria-label': 'поиск по заметкам' });
+      search.addEventListener('input', () => { noteQuery = search.value; fillNotes(box, mine, diary); });
+      root.append(search);
     }
-    fillNotes(box);
+    if (!diary && S.cats.length) {
+      root.append(chips([['', 'все']].concat(S.cats.map((c) => [c, c + ' ' + mine.filter((n) => n.cat === c).length])), noteCat, (k) => { noteCat = k; fillNotes(box, mine, diary); }, 'scroll'));
+    }
+    fillNotes(box, mine, diary);
     root.append(box);
+    root.append(h('div', { class: 'links' },
+      h('button', { class: 'link', type: 'button', text: 'категории', onclick: catSheet }),
+      h('button', { class: 'link', type: 'button', text: 'умные списки', onclick: () => go('lists') }),
+      h('button', { class: 'link', type: 'button', text: 'архив', onclick: () => go('archive') })));
     return root;
   }
 
-  function fillNotes(box) {
-    const S = D.S;
+  function fillNotes(box, mine, diary) {
     box.replaceChildren();
     const q = noteQuery.trim().toLowerCase();
-    const list = S.notes.filter((n) => !n.archived)
+    const list = mine
       .filter((n) => !noteCat || n.cat === noteCat)
       .filter((n) => {
         if (!q) return true;
@@ -482,8 +523,9 @@
       })
       .sort((a, b) => (b.pin - a.pin) || (b.t - a.t));
     if (!list.length) {
-      box.append(empty(S.notes.length ? 'ничего не найдено' : 'заметок пока нет',
-        S.notes.length ? 'Попробуй другое слово или сбрось категорию.' : 'Напиши выше или нажми на микрофон и просто говори. Скажи «запиши в категорию работа: …», и заметка сама попадёт в категорию.'));
+      box.append(h('p', { class: 'mark-cap', text: mine.length
+        ? 'Ничего не найдено. Попробуй другое слово или сбрось категорию.'
+        : diary ? 'Запиши, как прошёл день: по одной записи в любое время.' : 'Напишите мысль выше — она сохранится мгновенно. Потом одним тапом превратите в задачу, встречу или запись.' }));
       return;
     }
     list.forEach((n) => box.append(noteCard(n)));
@@ -548,7 +590,6 @@
   /* ================= еда ================= */
 
   const QUICK_FOOD = ['плов 300 г', 'гречка с курицей', 'салат', 'суп', 'омлет', 'каша', 'шаурма', 'кофе с молоком', 'банан', 'йогурт'];
-  let mealPhoto = null;
 
   function resizePhoto(file, cb) {
     const img = new Image();
@@ -565,70 +606,73 @@
     img.src = url;
   }
 
+  // лист «что съел»: с фото или без. калории прикидываются по названию блюда
+  function foodSheet(photo) {
+    D.openSheet((p) => {
+      const text = h('input', { class: 'field', placeholder: 'что съел: плов 300 г', maxlength: '100', enterkeyhint: 'done', 'aria-label': 'что съел' });
+      const kcal = h('input', { class: 'field', type: 'number', inputmode: 'numeric', placeholder: 'ккал', style: 'max-width:96px', 'aria-label': 'калории' });
+      const est = h('p', { class: 'cap', style: 'margin:0 2px;min-height:19px' });
+      let auto = 0;
+      const estimate = () => {
+        const e = L.estimateKcal(text.value);
+        auto = e.kcal;
+        kcal.placeholder = e.kcal ? String(e.kcal) : 'ккал';
+        est.textContent = e.items.length ? '≈ ' + e.items.map((i) => i.name + ' ' + i.grams + ' г, ' + i.kcal).join(' + ') + ' ккал' : text.value.trim() ? 'не знаю это блюдо, впиши калории сам' : 'я посчитаю калории для привычных блюд';
+      };
+      text.addEventListener('input', estimate);
+      const add = () => {
+        const v = text.value.trim();
+        if (!v) { text.focus(); return; }
+        D.addMeal(L.cap(v), Number(kcal.value) || auto, photo);
+        D.closeSheet(); toast('записано'); refresh();
+      };
+      text.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+      p.append(h('h2', { text: photo ? 'что на фото?' : 'добавить еду' }),
+        photo ? h('img', { src: photo, alt: 'фото еды', style: 'width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-top:12px' }) : null,
+        h('div', { class: 'form' },
+          h('div', { class: 'line' }, text, kcal), est,
+          h('div', { class: 'chips scroll' }, QUICK_FOOD.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => { text.value = q; estimate(); } }))),
+          h('button', { class: 'btn solid block', type: 'button', text: 'добавить', onclick: add })));
+      estimate();
+      setTimeout(() => text.focus(), 350);
+    });
+  }
+
+  function goalSheet() {
+    D.openSheet((p) => {
+      const w = h('input', { class: 'field', type: 'number', inputmode: 'numeric', value: D.S.goals.water, 'aria-label': 'цель по воде, мл' });
+      const k = h('input', { class: 'field', type: 'number', inputmode: 'numeric', value: D.S.goals.kcal, 'aria-label': 'цель по калориям' });
+      const ok = () => { D.S.goals.water = Math.max(250, Number(w.value) || 2500); D.S.goals.kcal = Math.max(500, Number(k.value) || 2000); save(); D.closeSheet(); toast('цели сохранены'); refresh(); };
+      p.append(h('h2', { text: 'цели на день' }),
+        h('div', { class: 'grid', style: 'margin-top:12px' },
+          h('div', null, h('p', { class: 'cap', style: 'margin:0 0 6px', text: 'вода, мл' }), w), h('div', null, h('p', { class: 'cap', style: 'margin:0 0 6px', text: 'калории' }), k)),
+        h('div', { class: 'form', style: 'margin-top:12px' }, h('button', { class: 'btn solid block', type: 'button', text: 'сохранить', onclick: ok })));
+    });
+  }
+
   function pFood() {
     const S = D.S, root = h('div', { class: 'stack' }), t0 = today();
     const meals = S.meals.filter((m) => L.dkey(new Date(m.t)) === t0);
     const total = meals.reduce((a, m) => a + m.kcal, 0);
 
-    const kfill = h('div', { class: 'fill' + (total > S.goals.kcal ? ' over' : '') });
-    root.append(card('dots',
-      h('div', { class: 'tile-head' }, label('калории сегодня'), h('span', { class: 'when', text: 'цель ' + fmt(S.goals.kcal) })),
-      h('p', { class: 'num' }, fmt(total), h('small', { text: 'ккал' })),
-      h('div', { class: 'track' }, kfill),
-      h('p', { class: 'cap', text: total <= S.goals.kcal ? 'осталось ' + fmt(S.goals.kcal - total) + ' ккал' : 'больше цели на ' + fmt(total - S.goals.kcal) + ' ккал' })));
-    requestAnimationFrame(() => requestAnimationFrame(() => { kfill.style.width = Math.min(100, total / S.goals.kcal * 100) + '%'; }));
-
     // вода
-    const w = S.water[t0] || 0, seg = 10, on = Math.min(seg, Math.floor(w / (S.goals.water / seg)));
-    root.append(card('',
-      h('div', { class: 'tile-head' }, label('вода'), h('span', { class: 'when', text: Math.round(w / S.goals.water * 100) + '%' })),
-      h('p', { class: 'num sm' }, fmt(w), h('small', { text: '/ ' + fmt(S.goals.water) + ' мл' })),
-      h('div', { class: 'drops', 'aria-hidden': 'true' }, Array.from({ length: seg }, (x, i) => h('i', { class: i < on ? 'on' : '' }))),
-      h('div', { class: 'line', style: 'margin-top:12px' },
-        h('button', { class: 'btn solid', style: 'flex:1', type: 'button', text: '+250 мл', onclick: () => { D.addWater(250); refresh(); } }),
-        h('button', { class: 'btn', style: 'flex:1', type: 'button', text: '+500 мл', onclick: () => { D.addWater(500); refresh(); } }),
-        h('button', { class: 'btn', type: 'button', text: '−250', 'aria-label': 'убрать 250 мл', onclick: () => { D.addWater(-250); refresh(); } }))));
+    const w = S.water[t0] || 0;
+    const wfill = h('div', { class: 'fill' });
+    root.append(card('water-card',
+      h('div', { class: 'tile-head' }, label('вода'), h('span', { class: 'num xs', style: 'margin:0' }, fmt(w), h('small', { text: 'мл' }))),
+      h('div', { class: 'track', style: 'margin-top:12px' }, wfill),
+      h('div', { class: 'water-btns' },
+        [250, 500, 1000].map((n) => h('button', { class: 'btn', type: 'button', text: '+' + n, onclick: () => { D.addWater(n); refresh(); } }))),
+      h('div', { class: 'tile-head', style: 'margin-top:12px;padding-top:12px;border-top:1px solid var(--line)' },
+        h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: 'Цель: ' + fmt(S.goals.water) + ' мл ✎', onclick: goalSheet }),
+        w ? h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: '−250', 'aria-label': 'убрать 250 мл', onclick: () => { D.addWater(-250); refresh(); } }) : null)));
+    requestAnimationFrame(() => requestAnimationFrame(() => { wfill.style.width = Math.min(100, w / S.goals.water * 100) + '%'; }));
 
-    // добавить еду
-    const text = h('input', { class: 'field', placeholder: 'что съел: плов 300 г', maxlength: '100', enterkeyhint: 'done', 'aria-label': 'что съел' });
-    const kcal = h('input', { class: 'field', type: 'number', inputmode: 'numeric', placeholder: 'ккал', style: 'max-width:96px', 'aria-label': 'калории' });
-    const est = h('p', { class: 'cap', style: 'margin:0 2px;min-height:19px' });
-    let auto = 0;
-    const estimate = () => {
-      const e = L.estimateKcal(text.value);
-      auto = e.kcal;
-      kcal.placeholder = e.kcal ? String(e.kcal) : 'ккал';
-      est.textContent = e.items.length ? '≈ ' + e.items.map((i) => i.name + ' ' + i.grams + ' г, ' + i.kcal).join(' + ') + ' ккал' : text.value.trim() ? 'не знаю это блюдо, впиши калории сам' : 'я посчитаю калории для привычных блюд';
-    };
-    text.addEventListener('input', estimate);
-    const photoPrev = h('div');
-    const drawPhoto = () => photoPrev.replaceChildren(mealPhoto ? h('div', { class: 'line' },
-      h('img', { src: mealPhoto, alt: 'фото еды', style: 'width:64px;height:64px;object-fit:cover;border-radius:12px' }),
-      h('button', { class: 'link', type: 'button', text: 'убрать фото', onclick: () => { mealPhoto = null; drawPhoto(); } })) : '');
-    drawPhoto();
-    const file = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onchange: (e) => { const f = e.target.files[0]; if (f) resizePhoto(f, (u) => { mealPhoto = u; drawPhoto(); }); } });
-    const add = () => {
-      const v = text.value.trim();
-      if (!v) { text.focus(); return; }
-      D.addMeal(L.cap(v), Number(kcal.value) || auto, mealPhoto);
-      mealPhoto = null;
-      toast('записано'); refresh();
-    };
-    text.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-    estimate();
-    root.append(card('',
-      label('добавить'),
-      h('div', { class: 'form', style: 'margin-top:10px' },
-        h('div', { class: 'line' }, text, kcal), est,
-        h('div', { class: 'chips scroll' }, QUICK_FOOD.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => { text.value = q; estimate(); } }))),
-        photoPrev,
-        h('div', { class: 'line' },
-          h('button', { class: 'btn', type: 'button', 'aria-label': 'сфотографировать еду', onclick: () => file.click() }, icon('camera')),
-          h('button', { class: 'btn solid', style: 'flex:1', type: 'button', text: 'добавить', onclick: add })),
-        file)));
+    // калории за сегодня
+    root.append(h('div', { class: 'kcal-line' }, h('b', { text: fmt(total) }), h('span', { text: 'ккал сегодня' }),
+      h('span', { style: 'margin-left:auto;text-transform:none;letter-spacing:0;font-size:12.5px', text: 'цель ' + fmt(S.goals.kcal) })));
 
     if (meals.length) {
-      root.append(section('сегодня', h('span', { class: 'when', text: meals.length + ' ' + plural(meals.length, 'приём', 'приёма', 'приёмов') })));
       root.append(card('', meals.map((m) => h('div', { class: 'item' },
         m.photo ? h('img', { src: m.photo, alt: '', style: 'width:46px;height:46px;flex:none;object-fit:cover;border-radius:12px' }) : null,
         h('div', { class: 'item-body' }, h('p', { class: 'item-title', text: m.text }), h('p', { class: 'item-meta', text: mealPart(m.t) + ' · ' + hm(m.t) })),
@@ -638,8 +682,14 @@
           toast('удалено', () => { D.S.meals.splice(i, 0, m); save(); refresh(); }); refresh();
         } }, '×')))));
     } else {
-      root.append(empty('сегодня ещё ничего', 'Запиши текстом, сфотографируй или скажи в микрофон: «на обед гречка с курицей», «выпил стакан воды».'));
+      root.append(h('p', { class: 'mark-cap', style: 'margin:6px 4px 0', text: 'Пусто. Сфотографируй еду кнопкой ниже и подпиши блюдо — калории прикину по названию. Или добавь вручную.' }));
     }
+
+    const file = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onchange: (e) => { const f = e.target.files[0]; if (f) resizePhoto(f, (u) => foodSheet(u)); } });
+    root.append(
+      h('button', { class: 'btn solid block big', type: 'button', onclick: () => file.click() }, icon('camera'), 'Сфотографировать еду'),
+      h('button', { class: 'btn block ghost', type: 'button', text: '+ Добавить вручную', onclick: () => foodSheet(null) }),
+      file);
 
     // неделя
     const bars = h('div', { class: 'bars' });
@@ -651,7 +701,8 @@
       days.push([d, v]); maxK = Math.max(maxK, v, S.goals.kcal * 0.6);
     }
     days.forEach((x) => bars.append(h('div', { class: 'b' }, h('div', { class: 'v' + (x[1] ? '' : ' zero'), style: 'height:' + Math.max(3, x[1] / maxK * 100) + '%', title: fmt(x[1]) + ' ккал' }), h('span', { class: 'd', text: L.WD_SHORT[x[0].getDay()] }))));
-    root.append(card('', h('div', { class: 'tile-head' }, label('7 дней'), h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: 'цели', onclick: () => go('settings') })), bars));
+    root.append(card('', h('div', { class: 'tile-head' }, label('7 дней'), h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: 'цели', onclick: goalSheet })), bars));
+    root.append(mark('FOOD'));
     return root;
   }
 
@@ -662,7 +713,7 @@
 
   /* ================= деньги ================= */
 
-  let moneyKind = 'exp', moneyCatPick = '';
+  let moneyKind = 'exp', moneyCatPick = '', moneyDetail = false;
 
   function pMoney(mk) {
     const S = D.S, root = h('div', { class: 'stack' });
@@ -672,77 +723,105 @@
     const month = D.monthMoney(mk);
     const exp = month.filter((m) => m.kind === 'exp').reduce((a, m) => a + m.amount, 0);
     const inc = month.filter((m) => m.kind === 'inc').reduce((a, m) => a + m.amount, 0);
-    const bal = inc - exp;
     const shift = (n) => go('money', L.monthKey(L.addMonths(md, n, 1)));
+    const lastDay = new Date(md.getFullYear(), md.getMonth() + 1, 0);
 
-    root.append(card('dots',
-      h('div', { class: 'cal-head' },
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'прошлый месяц', onclick: () => shift(-1) }, icon('left')),
-        h('p', { class: 'lead', text: D.MONTHS_NOM[md.getMonth()] + (md.getFullYear() !== new Date().getFullYear() ? ' ' + md.getFullYear() : '') }),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'следующий месяц', disabled: mk >= cur, style: mk >= cur ? 'opacity:.3' : '', onclick: () => { if (mk < cur) shift(1); } }, icon('right'))),
-      label('баланс', 'tiny'),
-      h('p', { class: 'num' }, (bal < 0 ? '−' : '') + fmt(Math.abs(bal)), h('small', { text: '₸' })),
-      h('div', { class: 'grid', style: 'margin-top:14px' },
-        h('div', null, label('доходы'), h('p', { class: 'lead', text: '+' + fmt(inc) + ' ₸' })),
-        h('div', null, label('расходы'), h('p', { class: 'lead', text: '−' + fmt(exp) + ' ₸' })))));
+    // свободно: бюджет минус траты; без бюджета доходы минус траты
+    const free = S.budget > 0 ? S.budget - exp : inc > 0 ? inc - exp : null;
+    const daysLeft = lastDay.getDate() - new Date().getDate() + 1;
+    const head = card('free dots',
+      h('div', { class: 'tile-head' }, label('свободно'), h('span', { class: 'when', style: 'color:var(--mute);margin-right:52px', text: 'до ' + lastDay.getDate() + ' ' + D.MON_SHORT[lastDay.getMonth()] })),
+      free == null
+        ? h('p', { class: 'ask tap', role: 'button', tabindex: '0', onclick: budgetSheet, text: 'Задай бюджет на месяц →' })
+        : h('p', { class: 'big' }, (free < 0 ? '−' : '') + fmt(Math.abs(free)), h('small', { text: '₸' })),
+      free != null && mk === cur && S.budget > 0 && free > 0 ? h('p', { class: 'cap', text: 'это ' + fmt(free / Math.max(1, daysLeft)) + ' ₸ в день до конца месяца' }) : null,
+      free != null && S.budget > 0 && free < 0 ? h('p', { class: 'cap', text: 'бюджет ' + fmt(S.budget) + ' ₸ превышен' }) : null,
+      h('p', { class: 'cap', style: 'margin-top:4px', text: 'доходы +' + fmt(inc) + ' ₸ · расходы −' + fmt(exp) + ' ₸' }),
+      h('button', { class: 'icon-btn gear', type: 'button', 'aria-label': 'бюджет', onclick: budgetSheet }, icon('gear')));
+    root.append(head);
 
-    // бюджет
     if (mk === cur) {
-      if (S.budget > 0) {
-        const daysLeft = new Date(md.getFullYear(), md.getMonth() + 1, 0).getDate() - new Date().getDate() + 1;
-        const left = S.budget - exp;
-        const bfill = h('div', { class: 'fill' + (left < 0 ? ' over' : '') });
-        root.append(tapCard('', budgetSheet,
-          h('div', { class: 'tile-head' }, label('бюджет на месяц'), h('span', { class: 'when', text: 'изменить' })),
-          h('p', { class: 'num sm' }, fmt(Math.abs(left)), h('small', { text: left >= 0 ? '₸ осталось' : '₸ сверх' })),
-          h('div', { class: 'track' }, bfill),
-          h('p', { class: 'cap', text: left >= 0 ? 'это ' + fmt(left / daysLeft) + ' ₸ в день до конца месяца' : 'бюджет ' + fmt(S.budget) + ' ₸ превышен' })));
-        requestAnimationFrame(() => requestAnimationFrame(() => { bfill.style.width = Math.min(100, exp / S.budget * 100) + '%'; }));
-      } else {
-        root.append(tapCard('', budgetSheet, label('бюджет'), h('p', { class: 'lead', text: 'Настрой бюджет →' }), h('p', { class: 'cap', text: 'Приложение покажет, сколько можно тратить в день.' })));
-      }
-
-      // добавить
-      const amount = h('input', { class: 'field', type: 'number', inputmode: 'decimal', placeholder: 'сумма, ₸', 'aria-label': 'сумма' });
-      const text = h('input', { class: 'field', placeholder: moneyKind === 'exp' ? 'на что: такси, продукты' : 'откуда: зарплата', maxlength: '60', enterkeyhint: 'done', 'aria-label': 'описание' });
-      const cats = L.MONEY_CAT_LIST;
-      const csel = h('select', { class: 'select', 'aria-label': 'категория', value: moneyCatPick || '', onchange: (e) => { moneyCatPick = e.target.value; } },
-        h('option', { value: '', text: 'категория: сама' }), cats.map((c) => h('option', { value: c, text: c })));
-      text.addEventListener('input', () => { if (!moneyCatPick && moneyKind === 'exp') csel.options[0].text = 'категория: ' + L.moneyCat(text.value); });
+      // добавить операцию
+      const amount = h('input', { type: 'number', inputmode: 'decimal', placeholder: '0', 'aria-label': 'сумма', value: '' });
+      const note = h('input', { class: 'note-in', placeholder: 'Заметка', maxlength: '60', enterkeyhint: 'done', 'aria-label': 'заметка' });
+      const addBtn = h('button', { class: 'btn block', type: 'button', text: '+ Добавить ' + (moneyKind === 'exp' ? 'расход' : 'доход') });
+      const sync = () => { addBtn.classList.toggle('solid', Number(String(amount.value).replace(',', '.')) > 0); };
       const add = () => {
         const v = Number(String(amount.value).replace(',', '.'));
         if (!(v > 0)) { amount.focus(); return; }
-        const cat = moneyKind === 'inc' ? 'доход' : (moneyCatPick || L.moneyCat(text.value));
-        if (D.addMoney(moneyKind, v, L.cap(text.value.trim()), cat)) { moneyCatPick = ''; toast((moneyKind === 'exp' ? '−' : '+') + fmt(v) + ' ₸'); refresh(); }
+        const cat = moneyKind === 'inc' ? 'доход' : (moneyCatPick || L.moneyCat(note.value));
+        if (D.addMoney(moneyKind, v, L.cap(note.value.trim()), cat)) { moneyCatPick = ''; toast((moneyKind === 'exp' ? '−' : '+') + fmt(v) + ' ₸'); refresh(); }
       };
-      text.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+      amount.addEventListener('input', sync);
+      addBtn.addEventListener('click', add);
+      note.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+      amount.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); note.focus(); } });
+      const catRow = moneyKind === 'exp'
+        ? h('div', { class: 'chips scroll', style: 'margin-top:12px' }, L.MONEY_CAT_LIST.map((c) => h('button', {
+          class: 'chip' + (c === moneyCatPick ? ' on' : ''), type: 'button', 'aria-pressed': c === moneyCatPick ? 'true' : 'false', text: c,
+          onclick: (e) => { moneyCatPick = moneyCatPick === c ? '' : c; e.currentTarget.parentNode.querySelectorAll('.chip').forEach((x) => { const on = x.textContent === moneyCatPick; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
+        })))
+        : null;
       root.append(card('',
-        chips([['exp', 'расход'], ['inc', 'доход']], moneyKind, (k) => { moneyKind = k; refresh(); }),
-        h('div', { class: 'form', style: 'margin-top:10px' },
-          h('div', { class: 'line' }, amount, text),
-          moneyKind === 'exp' ? csel : null,
-          h('button', { class: 'btn solid block', type: 'button', text: 'добавить', onclick: add }))));
+        h('div', { class: 'seg', role: 'tablist' }, [['exp', 'Расход'], ['inc', 'Доход']].map((x) => h('button', { class: x[0] === moneyKind ? 'on' : '', type: 'button', role: 'tab', 'aria-selected': x[0] === moneyKind ? 'true' : 'false', text: x[1], onclick: () => { moneyKind = x[0]; refresh(); } }))),
+        h('div', { class: 'amount-in', style: 'margin-top:10px' }, amount, h('span', { class: 'cur', text: '₸' }),
+          h('button', { class: 'icon-btn', style: 'width:40px;height:40px;border-radius:50%', type: 'button', 'aria-label': 'сказать голосом', onclick: () => { if (D.startCapture) D.startCapture(); } }, icon('mic'))),
+        catRow, note, addBtn));
       const ll = D.limitLine('записей в месяце', month.length, 'moneyMonth');
       if (ll) root.append(ll);
+
+      // расходы за 7 дней
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = L.addDays(new Date(), -i), k = L.dkey(d);
+        days.push({ d: d, v: S.money.filter((m) => m.kind === 'exp' && L.dkey(new Date(m.t)) === k).reduce((a, m) => a + m.amount, 0), now: i === 0 });
+      }
+      const week = days.reduce((a, x) => a + x.v, 0), maxV = Math.max(1, ...days.map((x) => x.v));
+      const wk = card('',
+        h('div', { class: 'tile-head', style: 'align-items:flex-start' },
+          h('div', null, label('расходы за 7 дней'), h('p', { class: 'num sm', style: 'margin-top:10px' }, fmt(week), h('small', { text: '₸' })), h('p', { class: 'cap', text: fmt(week / 7) + ' ₸/день' })),
+          h('button', { class: 'round-btn' + (moneyDetail ? ' open' : ''), type: 'button', 'aria-label': 'по категориям', 'aria-expanded': moneyDetail ? 'true' : 'false', onclick: () => { moneyDetail = !moneyDetail; refresh(); } }, icon('down'))),
+        h('div', { class: 'week7' }, days.map((x) => h('div', { class: 'col' + (x.now ? ' now' : '') },
+          h('div', { class: 'bar7', style: 'height:' + (x.v ? Math.max(6, x.v / maxV * 100) : 0) + '%', title: fmt(x.v) + ' ₸' }), h('small', { text: L.WD_SHORT[x.d.getDay()] })))));
+      if (moneyDetail) {
+        const byCat = {};
+        month.filter((m) => m.kind === 'exp').forEach((m) => { const c = m.cat || L.moneyCat(m.text); byCat[c] = (byCat[c] || 0) + m.amount; });
+        const cats = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
+        const fills = [];
+        const det = h('div', { style: 'margin-top:16px;padding-top:14px;border-top:1px solid var(--line)' }, label('за месяц по категориям'));
+        if (!cats.length) det.append(h('p', { class: 'cap', text: 'Расходов за месяц пока нет.' }));
+        cats.forEach((c, i) => {
+          const f = h('div', { class: 'fill' }); fills.push([f, byCat[c] / byCat[cats[0]] * 100]);
+          det.append(h('div', { class: 'hbar', style: i ? '' : 'margin-top:12px' }, h('span', { text: c }), h('div', { class: 'track' }, f), h('span', { class: 'amount', text: fmt(byCat[c]) })));
+        });
+        requestAnimationFrame(() => requestAnimationFrame(() => fills.forEach((x) => { x[0].style.width = x[1] + '%'; })));
+        wk.append(det);
+      }
+      root.append(wk);
+
+      // цель накопления
+      const g = S.saving;
+      if (g && g.target > 0) {
+        const gf = h('div', { class: 'fill' });
+        root.append(card('',
+          h('div', { class: 'tile-head' }, label('цель накопления'), h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: 'изменить', onclick: savingSheet })),
+          h('p', { class: 'lead', text: g.name || 'Накопить' }),
+          h('p', { class: 'num xs', style: 'margin-top:8px' }, fmt(g.saved || 0), h('small', { text: '₸ из ' + fmt(g.target) })),
+          h('div', { class: 'track' }, gf),
+          h('div', { class: 'line', style: 'margin-top:12px' },
+            h('button', { class: 'btn sm solid', style: 'flex:1', type: 'button', text: '+ отложить', onclick: () => saveUp(1) }),
+            h('button', { class: 'btn sm', style: 'flex:1', type: 'button', text: 'забрать', onclick: () => saveUp(-1) }))));
+        requestAnimationFrame(() => requestAnimationFrame(() => { gf.style.width = Math.min(100, (g.saved || 0) / g.target * 100) + '%'; }));
+      } else {
+        root.append(tapCard('', savingSheet, h('div', { class: 'goal-row' }, icon('spark'), h('p', { class: 'lead', style: 'margin:0;font-weight:400', text: 'Поставить цель накопления →' }))));
+      }
     }
 
-    // по категориям
-    const byCat = {};
-    month.filter((m) => m.kind === 'exp').forEach((m) => { const c = m.cat || L.moneyCat(m.text); byCat[c] = (byCat[c] || 0) + m.amount; });
-    const cats = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
-    if (cats.length) {
-      const top = byCat[cats[0]];
-      const box = card('', label('расходы по категориям'));
-      const fills = [];
-      cats.forEach((c, i) => {
-        const f = h('div', { class: 'fill' }); fills.push([f, byCat[c] / top * 100]);
-        box.append(h('div', { class: 'hbar', style: i ? '' : 'margin-top:14px' }, h('span', { text: c }), h('div', { class: 'track' }, f), h('span', { class: 'amount', text: fmt(byCat[c]) })));
-      });
-      requestAnimationFrame(() => requestAnimationFrame(() => fills.forEach((x) => { x[0].style.width = x[1] + '%'; })));
-      root.append(box);
-    }
-
-    // записи по дням
+    // операции периода
+    root.append(section('операции периода ' + month.length, h('div', { class: 'line', style: 'gap:6px' },
+      h('button', { class: 'round-btn', type: 'button', 'aria-label': 'прошлый месяц', onclick: () => shift(-1) }, icon('left')),
+      h('span', { class: 'when', text: D.MONTHS_NOM[md.getMonth()] + (md.getFullYear() !== new Date().getFullYear() ? ' ' + md.getFullYear() : '') }),
+      h('button', { class: 'round-btn', type: 'button', 'aria-label': 'следующий месяц', disabled: mk >= cur, style: mk >= cur ? 'opacity:.3' : '', onclick: () => { if (mk < cur) shift(1); } }, icon('right')))));
     if (month.length) {
       const byDay = {};
       month.forEach((m) => { const k = L.dkey(new Date(m.t)); (byDay[k] = byDay[k] || []).push(m); });
@@ -759,9 +838,45 @@
           } }, '×')))));
       });
     } else {
-      root.append(empty('записей нет', mk === cur ? 'Добавь вручную или скажи: «купил продукты за 7 тысяч», «пришла зарплата 350 000».' : 'В этом месяце ничего не записано.'));
+      root.append(h('p', { class: 'mark-cap', text: mk === cur ? 'Пусто. Добавь первую операцию выше — «Свободно» пересчитывается.' : 'В этом месяце ничего не записано.' }));
     }
     return root;
+  }
+
+  function savingSheet() {
+    D.openSheet((p) => {
+      const g = D.S.saving || { name: '', target: 0, saved: 0 };
+      const name = h('input', { class: 'field', placeholder: 'на что копим: отпуск, ноутбук', value: g.name || '', maxlength: '40', 'aria-label': 'название цели' });
+      const target = h('input', { class: 'field', type: 'number', inputmode: 'numeric', placeholder: 'сколько нужно, ₸', value: g.target || '', 'aria-label': 'сумма цели' });
+      const ok = () => {
+        const t = Math.max(0, Number(target.value) || 0);
+        if (!t) { target.focus(); return; }
+        D.S.saving = { name: L.cap(name.value.trim()), target: t, saved: g.saved || 0 };
+        save(); D.closeSheet(); toast('цель сохранена'); refresh();
+      };
+      p.append(h('h2', { text: 'цель накопления' }), h('p', { class: 'cap', text: 'Откладывай суммы кнопкой «+ отложить», а приложение покажет прогресс.' }),
+        h('div', { class: 'form' }, name, target,
+          h('button', { class: 'btn solid block', type: 'button', text: 'сохранить', onclick: ok }),
+          D.S.saving ? h('button', { class: 'btn block', type: 'button', text: 'убрать цель', onclick: () => { D.S.saving = null; save(); D.closeSheet(); refresh(); } }) : null));
+      setTimeout(() => (g.name ? target : name).focus(), 350);
+    });
+  }
+
+  function saveUp(sign) {
+    D.openSheet((p) => {
+      const input = h('input', { class: 'field', type: 'number', inputmode: 'numeric', placeholder: 'сумма, ₸', 'aria-label': 'сумма' });
+      const ok = () => {
+        const v = Number(input.value) || 0;
+        if (!(v > 0)) { input.focus(); return; }
+        const g = D.S.saving;
+        g.saved = Math.max(0, (g.saved || 0) + sign * v);
+        save(); D.closeSheet(); toast(sign > 0 ? 'отложено ' + fmt(v) + ' ₸' : 'забрано ' + fmt(v) + ' ₸'); refresh();
+      };
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ok(); } });
+      p.append(h('h2', { text: sign > 0 ? 'сколько отложить?' : 'сколько забрать?' }),
+        h('div', { class: 'form', style: 'margin-top:12px' }, input, h('button', { class: 'btn solid block', type: 'button', text: 'готово', onclick: ok })));
+      setTimeout(() => input.focus(), 350);
+    });
   }
 
   function budgetSheet() {
@@ -778,6 +893,7 @@
   D.page('digest', '', pDigest, 'digest');
   D.page('tasks', 'Задачи', pTasks, 'digest');
   D.page('notes', 'Заметки', pNotes, 'digest');
+  D.page('meetings', 'Встречи', pMeetings, 'digest');
   D.page('food', 'Еда', pFood, 'digest');
   D.page('money', 'Деньги', pMoney, 'digest');
 })();

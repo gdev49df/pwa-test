@@ -25,13 +25,19 @@
 <body>
   <div class="grain" aria-hidden="true"></div>
 
+  <!-- заставка и первый запуск -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-in"><div id="splash-logo"></div><p class="splash-name">DDX PLANNER</p><p class="splash-sub">Открываю…</p></div>
+  </div>
+  <div class="onb" id="onb" hidden></div>
+
   <div class="app">
     <header class="bar" id="bar">
       <div>
         <p class="label" id="kicker"></p>
         <h1 id="title"></h1>
       </div>
-      <button class="icon-btn" id="bar-btn" type="button"></button>
+      <button class="icon-btn" id="bar-btn" type="button" hidden></button>
     </header>
     <main id="view"></main>
   </div>
@@ -47,9 +53,14 @@
 
   <div class="alarm" id="alarm" role="alert" hidden></div>
 
-  <button class="fab" id="fab" type="button" aria-label="быстрый ввод голосом" aria-pressed="false"></button>
+  <!-- главная: восемь разделов и круглая кнопка голосового ввода -->
+  <div class="dock" id="dock">
+    <nav class="tabs" id="tabs" aria-label="разделы"></nav>
+    <button class="fab" id="fab" type="button" aria-label="быстрый ввод голосом" aria-pressed="false"></button>
+  </div>
 
-  <nav class="tabs" id="tabs" aria-label="разделы"></nav>
+  <!-- внутри раздела: назад в дайджест и плитка текущего раздела -->
+  <nav class="subbar" id="subbar" aria-label="навигация"></nav>
 
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-panel" id="sheet-panel" role="dialog" aria-modal="true"></div>
@@ -63,6 +74,7 @@
   <script src="hubs.js"></script>
   <script src="extra.js"></script>
   <script src="capture.js"></script>
+  <script src="onboard.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

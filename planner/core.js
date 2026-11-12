@@ -61,11 +61,33 @@
     right: '<path d="M10 6l6 6-6 6"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     camera: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    spark: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5v4M16.5 17.5h4"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.4M12 18.1v2.4M3.5 12h2.4M18.1 12h2.4M6 6l1.7 1.7M16.3 16.3L18 18M18 6l-1.7 1.7M7.7 16.3L6 18"/>',
+    down: '<path d="M6 9.5l6 6 6-6"/>',
     keyboard: '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>'
   };
   function icon(name) {
     const s = document.createElement('span');
     s.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
+    return s.firstChild;
+  }
+
+  // логотип: шесть треугольников, собранных в шестиугольник с зазорами
+  function logo(cls) {
+    const R = 46, c = 50, gap = 3.2, pts = [];
+    for (let k = 0; k < 6; k++) { const a = (Math.PI / 3) * k - Math.PI / 2; pts.push([c + R * Math.cos(a), c + R * Math.sin(a)]); }
+    let tri = '';
+    for (let k = 0; k < 6; k++) {
+      const a = pts[k], b = pts[(k + 1) % 6];
+      const mid = (Math.PI / 3) * (k + 0.5) - Math.PI / 2;
+      const dx = Math.cos(mid) * gap, dy = Math.sin(mid) * gap;
+      const p = [[c + dx, c + dy], [a[0] + dx, a[1] + dy], [b[0] + dx, b[1] + dy]];
+      // стягиваем к центру тяжести, чтобы между треугольниками остался зазор
+      const gx = (p[0][0] + p[1][0] + p[2][0]) / 3, gy = (p[0][1] + p[1][1] + p[2][1]) / 3;
+      tri += '<polygon points="' + p.map((q) => (gx + (q[0] - gx) * 0.8).toFixed(1) + ',' + (gy + (q[1] - gy) * 0.8).toFixed(1)).join(' ') + '"/>';
+    }
+    const s = document.createElement('span');
+    s.innerHTML = '<svg class="' + (cls || 'logo') + '" viewBox="0 0 100 100" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round">' + tri + '</svg>';
     return s.firstChild;
   }
 
@@ -128,7 +150,7 @@
 
   const blank = () => ({
     v: 2, name: '', tasks: [], notes: [], cats: [], lists: [], habits: [], meals: [], water: {}, money: [],
-    goals: { water: 2500, kcal: 2000 }, budget: 0,
+    goals: { water: 2500, kcal: 2000 }, budget: 0, saving: null,
     focus: { active: null, log: [] },
     pro: { until: 0, used: [] }, usage: {}, settings: { resetHour: 18 }, last: null
   });
@@ -498,14 +520,17 @@
   /* ---------- маршруты, шапка, панель ---------- */
 
   const PAGES = {};
-  const HUBS = ['digest', 'tasks', 'notes', 'food', 'money'];
-  const TAB_LABEL = { digest: 'Главная', tasks: 'Задачи', notes: 'Заметки', food: 'Еда', money: 'Деньги' };
-  function page(name, title, build, parent) { PAGES[name] = { title: title, build: build, parent: parent || 'menu' }; }
+  // порядок важен: он же номер на панели (01 digest ... 08 settings), два ряда по четыре
+  const HUBS = ['digest', 'tasks', 'notes', 'money', 'meetings', 'food', 'habits', 'settings'];
+  const TAB_LABEL = { digest: 'Digest', tasks: 'Tasks', notes: 'Notes', money: 'Money', meetings: 'Meetings', food: 'Food', habits: 'Rituals', settings: 'Settings' };
+  const HUB_NAME = { digest: 'Дайджест', tasks: 'Задачи', notes: 'Заметки', money: 'Деньги', meetings: 'Встречи', food: 'Еда', habits: 'Ритуалы', settings: 'Настройки' };
+  function page(name, title, build, parent) { PAGES[name] = { title: title, build: build, parent: parent || 'settings' }; }
 
   let route = 'digest', param = '';
   function currentRoute() {
     const parts = location.hash.replace(/^#\/?/, '').split('/');
-    const r = parts[0] || 'digest';
+    let r = parts[0] || 'digest';
+    if (r === 'menu') r = 'settings';
     param = decodeURIComponent(parts.slice(1).join('/') || '');
     return PAGES[r] ? r : 'digest';
   }
@@ -515,18 +540,19 @@
   }
   window.addEventListener('hashchange', () => render(true));
 
+  // панель из восьми плиток; круглая кнопка в центре лежит поверх стыка рядов
   function buildTabs() {
     const nav = $('#tabs');
     HUBS.forEach((r, i) => {
-      nav.append(h('button', { class: 'tab', type: 'button', 'data-r': r, 'aria-label': TAB_LABEL[r], onclick: () => go(r) },
+      nav.append(h('button', { class: 'tab c' + (i % 4), type: 'button', 'data-r': r, 'aria-label': TAB_LABEL[r], onclick: () => go(r) },
         h('span', { class: 'no', text: pad(i + 1) }), h('span', { class: 'nm', text: TAB_LABEL[r] })));
     });
   }
   function updateTabs() {
     document.querySelectorAll('.tab').forEach((b) => {
-      const on = b.dataset.r === route || (!HUBS.includes(route) && b.dataset.r === hubOf(route));
+      const on = b.dataset.r === route;
       b.classList.toggle('on', on);
-      if (b.dataset.r === route) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
   }
   function hubOf(r) {
@@ -535,19 +561,30 @@
     return x || 'digest';
   }
 
+  // нижняя панель внутри раздела: «назад» и плитка текущего раздела
+  function drawSubbar(pg) {
+    const hub = hubOf(route), isHub = HUBS.includes(route);
+    const par = isHub ? 'digest' : pg.parent;
+    const parName = HUBS.includes(par) ? HUB_NAME[par] : (PAGES[par] && typeof PAGES[par].title === 'string' ? PAGES[par].title : 'Назад');
+    $('#subbar').replaceChildren(
+      h('button', { class: 'back', type: 'button', onclick: () => go(par) }, icon('back'), h('span', { text: parName })),
+      h('button', { class: 'here', type: 'button', 'aria-label': TAB_LABEL[hub] + ', наверх', onclick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+        h('span', { class: 'no', text: pad(HUBS.indexOf(hub) + 1) }), h('span', { class: 'nm', text: TAB_LABEL[hub] })));
+  }
+
   function render(animate) {
     route = currentRoute();
     const pg = PAGES[route];
+    const isHub = HUBS.includes(route);
     const bar = $('#bar');
+    document.body.dataset.view = route === 'digest' ? 'digest' : 'inner';
     bar.classList.toggle('hidden-bar', route === 'digest');
+    bar.classList.toggle('compact', isHub);
     if (route !== 'digest') {
-      $('#kicker').textContent = HUBS.includes(route) ? pad(HUBS.indexOf(route) + 1) + ' · ddx planner' : 'ddx planner';
-      $('#title').textContent = typeof pg.title === 'function' ? pg.title(param) : pg.title;
-      const btn = $('#bar-btn');
-      const isHub = HUBS.includes(route);
-      btn.replaceChildren(icon(isHub ? 'menu' : 'back'));
-      btn.setAttribute('aria-label', isHub ? 'меню' : 'назад');
-      btn.onclick = () => go(isHub ? 'menu' : pg.parent);
+      $('#kicker').textContent = isHub ? pad(HUBS.indexOf(route) + 1) + ' ' + TAB_LABEL[route] : pad(HUBS.indexOf(hubOf(route)) + 1) + ' ' + TAB_LABEL[hubOf(route)];
+      $('#title').textContent = isHub ? '' : (typeof pg.title === 'function' ? pg.title(param) : pg.title);
+      $('#bar-btn').hidden = true;
+      drawSubbar(pg);
     }
     const node = pg.build(param);
     if (animate) {
@@ -563,8 +600,8 @@
   function refresh() { const y = window.scrollY; render(false); window.scrollTo(0, y); }
 
   Object.assign(D, {
-    MONTHS, MONTHS_NOM, MON_SHORT, WEEKDAYS, PRI_LABEL, LIST_NAMES, HUBS,
-    $, h, icon, card, tapCard, label, empty, section, chips, pad, today, tomorrow, fmt, uid, plural, hm,
+    MONTHS, MONTHS_NOM, MON_SHORT, WEEKDAYS, PRI_LABEL, LIST_NAMES, HUBS, HUB_NAME, TAB_LABEL,
+    $, h, icon, logo, card, tapCard, label, empty, section, chips, pad, today, tomorrow, fmt, uid, plural, hm,
     dateLabel, dueLabel, stampOf, ago, save, isPro, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
