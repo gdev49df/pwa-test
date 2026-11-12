@@ -4,7 +4,7 @@ window.DDX_CONFIG = {
   name: 'DDX Planner',
 
   // ии: адрес воркера из папки worker (ключ хранится только в нём). пока пусто, ии-функции скрыты
-  ai: { url: '' },
+  ai: { url: 'https://ddx-ai.wsmp.workers.dev/' },
 
   // цены в тенге
   price: { month: 1090, year: 10990 },
