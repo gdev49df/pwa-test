@@ -32,6 +32,7 @@
   <div class="onb" id="onb" hidden></div>
 
   <div class="app">
+    <button class="back-top" id="back" type="button" hidden></button>
     <header class="bar" id="bar">
       <div>
         <p class="label" id="kicker"></p>
@@ -55,14 +56,11 @@
 
   <div class="fade" aria-hidden="true"></div>
 
-  <!-- главная: восемь разделов и круглая кнопка голосового ввода -->
+  <!-- нижняя панель на всех экранах: четыре вкладки и круглая кнопка быстрого ввода по центру -->
   <div class="dock" id="dock">
     <nav class="tabs" id="tabs" aria-label="разделы"></nav>
     <button class="fab" id="fab" type="button" aria-label="быстрый ввод голосом" aria-pressed="false"></button>
   </div>
-
-  <!-- внутри раздела: назад в дайджест и плитка текущего раздела -->
-  <nav class="subbar" id="subbar" aria-label="навигация"></nav>
 
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-panel" id="sheet-panel" role="dialog" aria-modal="true"></div>

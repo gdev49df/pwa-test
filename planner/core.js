@@ -64,6 +64,10 @@
     spark: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5v4M16.5 17.5h4"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.4M12 18.1v2.4M3.5 12h2.4M18.1 12h2.4M6 6l1.7 1.7M16.3 16.3L18 18M18 6l-1.7 1.7M7.7 16.3L6 18"/>',
     down: '<path d="M6 9.5l6 6 6-6"/>',
+    home: '<path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z"/>',
+    tasks: '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.6 2.6 4.8-5.2"/>',
+    notes: '<path d="M6 3.5h8.5L18.5 7.5v13H6z"/><path d="M14.5 3.5v4h4M9.5 12h5M9.5 15.5h5"/>',
+    more: '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
     keyboard: '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>'
   };
   function icon(name) {
@@ -635,50 +639,55 @@
   window.addEventListener('hashchange', () => render(true));
 
   // панель из восьми плиток; круглая кнопка в центре лежит поверх стыка рядов
-  function buildTabs() {
-    const nav = $('#tabs');
-    HUBS.forEach((r, i) => {
-      nav.append(h('button', { class: 'tab c' + (i % 4), type: 'button', 'data-r': r, 'aria-label': TAB_LABEL[r], onclick: () => go(r) },
-        h('span', { class: 'no', text: pad(i + 1) }), h('span', { class: 'nm', text: TAB_LABEL[r] })));
-    });
-  }
-  function updateTabs() {
-    document.querySelectorAll('.tab').forEach((b) => {
-      const on = b.dataset.r === route;
-      b.classList.toggle('on', on);
-      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-    });
-  }
+  // нижняя панель: четыре вкладки и круглая кнопка по центру. «Ещё» ведёт ко всем разделам и инструментам
   function hubOf(r) {
     let x = r, guard = 0;
     while (x && !HUBS.includes(x) && guard++ < 6) x = PAGES[x] ? PAGES[x].parent : null;
     return x || 'digest';
   }
-
-  // нижняя панель внутри раздела: «назад» и плитка текущего раздела
-  function drawSubbar(pg) {
-    const hub = hubOf(route), isHub = HUBS.includes(route);
-    const par = isHub ? 'digest' : pg.parent;
-    const parName = HUBS.includes(par) ? HUB_NAME[par] : (PAGES[par] && typeof PAGES[par].title === 'string' ? PAGES[par].title : 'Назад');
-    $('#subbar').replaceChildren(
-      h('button', { class: 'back', type: 'button', onclick: () => go(par) }, icon('back'), h('span', { text: parName })),
-      h('button', { class: 'here', type: 'button', 'aria-label': TAB_LABEL[hub] + ', наверх', onclick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-        h('span', { class: 'no', text: pad(HUBS.indexOf(hub) + 1) }), h('span', { class: 'nm', text: TAB_LABEL[hub] })));
+  const TABS = [['digest', 'Дайджест', 'home'], ['tasks', 'Задачи', 'tasks'], null, ['notes', 'Заметки', 'notes'], ['more', 'Ещё', 'more']];
+  const MAIN = ['digest', 'tasks', 'notes', 'more'];
+  const tabOf = (r) => { if (r === 'more') return 'more'; const hb = hubOf(r); return ['digest', 'tasks', 'notes'].includes(hb) ? hb : 'more'; };
+  function buildTabs() {
+    const nav = $('#tabs');
+    TABS.forEach((x) => {
+      if (!x) { nav.append(h('span', { class: 'tab-gap', 'aria-hidden': 'true' })); return; }
+      nav.append(h('button', { class: 'tab', type: 'button', 'data-r': x[0], 'aria-label': x[1], onclick: () => { if (route === x[0]) window.scrollTo({ top: 0, behavior: 'smooth' }); else go(x[0]); } },
+        icon(x[2]), h('span', { class: 'nm', text: x[1] })));
+    });
   }
-
+  function updateTabs() {
+    const cur = tabOf(route);
+    document.querySelectorAll('.tab').forEach((b) => {
+      const on = b.dataset.r === cur;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+  }
+  // кнопка «назад» вверху: разделы из «Ещё» возвращают в «Ещё», вложенные страницы к своему родителю
+  function drawBack(pg) {
+    const btn = $('#back');
+    if (MAIN.includes(route)) { btn.hidden = true; return; }
+    const par = HUBS.includes(route) ? 'more' : (pg.parent || 'digest');
+    const name = par === 'more' ? 'Ещё' : HUBS.includes(par) ? HUB_NAME[par] : (PAGES[par] && typeof PAGES[par].title === 'string' && PAGES[par].title ? PAGES[par].title : 'Назад');
+    btn.replaceChildren(icon('back'), h('span', { text: name }));
+    btn.onclick = () => go(par);
+    btn.hidden = false;
+  }
   function render(animate) {
     route = currentRoute();
     const pg = PAGES[route];
-    const isHub = HUBS.includes(route);
+    const isHub = HUBS.includes(route) || route === 'more';
     const bar = $('#bar');
     document.body.dataset.view = route === 'digest' ? 'digest' : 'inner';
     bar.classList.toggle('hidden-bar', route === 'digest');
     bar.classList.toggle('compact', isHub);
-    if (route !== 'digest') {
-      $('#kicker').textContent = isHub ? pad(HUBS.indexOf(route) + 1) + ' ' + TAB_LABEL[route] : pad(HUBS.indexOf(hubOf(route)) + 1) + ' ' + TAB_LABEL[hubOf(route)];
+    if (route === 'digest') $('#back').hidden = true;
+    else {
+      $('#kicker').textContent = route === 'more' ? 'Ещё' : isHub ? pad(HUBS.indexOf(route) + 1) + ' ' + TAB_LABEL[route] : pad(HUBS.indexOf(hubOf(route)) + 1) + ' ' + TAB_LABEL[hubOf(route)];
       $('#title').textContent = isHub ? '' : (typeof pg.title === 'function' ? pg.title(param) : pg.title);
       $('#bar-btn').hidden = true;
-      drawSubbar(pg);
+      drawBack(pg);
     }
     const node = pg.build(param);
     if (animate) {

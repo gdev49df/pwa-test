@@ -565,6 +565,40 @@
     return root;
   }
 
+  /* ================= «Ещё»: все разделы и инструменты ================= */
+
+  function pMore() {
+    const S = D.S, root = h('div', { class: 'stack' });
+    root.append(D.mark('MORE'));
+    const hints = {
+      digest: 'день целиком', tasks: 'активные и готово', notes: 'идеи и дневник', money: 'бюджет и траты',
+      meetings: 'ближайшие и прошедшие', food: 'калории и вода', habits: 'привычки и серии', settings: 'профиль, тарифы, помощь'
+    };
+    root.append(label('разделы'));
+    root.append(h('div', { class: 'grid' }, D.HUBS.map((r, i) => tapCard('tile more-tile', () => go(r),
+      h('span', { class: 'tile-no', text: D.pad(i + 1) }),
+      h('div', null, h('p', { class: 'item-title', text: D.HUB_NAME[r] }), h('p', { class: 'item-meta', text: hints[r] }))))));
+    const tools = [
+      ['calendar', 'Календарь', 'дни, недели, месяцы'],
+      ['focus', 'Focus Mode', S.focus.active ? 'идёт фокус' : 'таймер 25, 45, 60 минут'],
+      ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
+      ['stats', 'Статистика', 'задачи, деньги, фокус, привычки'],
+      ['timeline', 'Timeline', 'лента событий по дням'],
+      D.aiOn() ? ['ask', 'Спроси ИИ', 'вопросы по твоим данным'] : null,
+      ['search', 'Поиск', 'по всем записям'],
+      ['reset', 'Daily Reset', 'разобрать хвосты дня'],
+      ['archive', 'Архив', 'выполненное и старые заметки'],
+      ['pro', 'DDX Pro', D.isPro() ? 'активна до ' + new Date(S.pro.until).toLocaleDateString('ru-RU') : 'бесплатный тариф']
+    ].filter(Boolean);
+    root.append(label('инструменты'));
+    tools.forEach((r, i) => root.append(tapCard('menu-row', () => go(r[0]),
+      h('span', { class: 'n', text: D.pad(i + 1) }),
+      h('div', null, h('p', { class: 'item-title', text: r[1] }), h('p', { class: 'item-meta', text: r[2] })),
+      h('span', { class: 'arrow' }, icon('right')))));
+    root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
+    return root;
+  }
+
   /* ================= меню ================= */
 
   function pMenu() {
@@ -825,6 +859,7 @@
   D.page('timeline', 'Timeline', pTimeline, 'digest');
   D.page('search', 'Поиск', pSearch, 'digest');
   D.page('ask', 'Спроси ИИ', pAsk, 'digest');
+  D.page('more', 'Ещё', pMore, 'digest');
   D.page('settings', 'Настройки', pMenu, 'digest');
   D.page('pro', 'DDX Pro', pPro, 'settings');
   D.page('subscriptions', 'Тарифы', pSubs, 'pro');
