@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DDX Planner</title>
+
+  <!-- pwa: манифест и цвет строки состояния -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111112">
+  <meta name="color-scheme" content="dark">
+
+  <!-- pwa для ios (safari) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DDX">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="bar">
+      <div class="bar-title">
+        <p class="kicker" id="kicker"></p>
+        <h1 id="title"></h1>
+      </div>
+      <button class="icon-btn" id="bar-btn" type="button"></button>
+    </header>
+    <main id="view"></main>
+  </div>
+
+  <!-- то, что распознаётся прямо сейчас -->
+  <div class="live" id="live" hidden>
+    <div class="card live-card" role="status">
+      <p class="kicker"><span id="live-time">0:00</span> &nbsp; идёт запись</p>
+      <p class="live-text" id="live-text"></p>
+    </div>
+  </div>
+
+  <button class="fab" id="fab" type="button" aria-label="быстрый ввод голосом" aria-pressed="false"></button>
+
+  <nav class="tabs" id="tabs" aria-label="разделы"></nav>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-panel" id="sheet-panel" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="lib.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
