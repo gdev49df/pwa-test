@@ -524,41 +524,43 @@
     const root = h('div', { class: 'stack' });
     root.append(D.mark('ASK'));
     if (!D.aiOn()) { root.append(h('p', { class: 'mark-cap', text: 'ИИ пока не подключён: нужен адрес воркера в config.js.' })); return root; }
-    const box = h('div', { class: 'stack' });
+    const box = h('div', { class: 'chat' });
     const input = h('input', { class: 'field', placeholder: 'Спроси свою жизнь…', maxlength: '300', enterkeyhint: 'send', 'aria-label': 'вопрос' });
     const send = h('button', { class: 'ib go', type: 'button', 'aria-label': 'спросить', onclick: () => ask(input.value) }, icon('plus'));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
+    // обычный чат: свои сообщения пузырьком справа, ответ ии просто текстом без рамки
     const draw = () => {
       box.replaceChildren();
       askLog.forEach((m) => {
         const fresh = m.fresh; m.fresh = false;
-        let body;
-        if (m.me) body = h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t });
-        else if (m.wait) body = h('div', { class: 'thinking', role: 'status' }, D.logo('logo think'), h('span', { text: 'думаю…' }));
+        let el;
+        if (m.me) el = h('div', { class: 'msg me' }, h('p', { text: m.t }));
+        else if (m.wait) el = h('div', { class: 'msg ai thinking', role: 'status' }, D.logo('logo think'), h('span', { text: 'думаю…' }));
         else {
-          body = h('div', { class: 'md-wrap', style: 'margin-top:8px' }, mdBlock(m.t));
-          if (fresh) streamWords(body);
+          el = h('div', { class: 'msg ai' }, mdBlock(m.t));
+          if (fresh) streamWords(el);
         }
-        const c = card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), body);
-        if (fresh && m.me) c.classList.add('rise');
-        box.append(c);
+        if (fresh && m.me) el.classList.add('rise');
+        box.append(el);
       });
+      if (askLog.length) requestAnimationFrame(() => { const last = box.lastElementChild; if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
     };
     let busy = false;
     const setAnswer = (t) => { const m = askLog[askLog.length - 1]; m.t = t; m.wait = false; m.fresh = true; };
     const ask = (q) => {
       q = String(q || '').trim();
       if (!q || busy) return;
-      busy = true; input.value = '';
+      busy = true; input.value = ''; if (chips) chips.remove();
       askLog.push({ me: true, t: q, fresh: true }); askLog.push({ me: false, t: '', wait: true, fresh: true }); draw();
       D.aiCall({ mode: 'ask', question: q, context: lifeContext() }).then((r) => { setAnswer(r.answer || 'пустой ответ'); })
         .catch((e) => { setAnswer(e.message === 'limit' ? 'лимит запросов на сегодня исчерпан' : 'не получилось ответить (' + e.message + (/failed to fetch|load failed|networkerror/i.test(e.message) ? ', сайт ' + location.origin : '') + ')'); })
         .then(() => { busy = false; draw(); });
     };
-    root.append(card('cap-in', input, send));
-    root.append(h('p', { class: 'cap', style: 'margin:8px 6px 0', text: 'Для ответа задачи, траты, еда и последние заметки отправляются на сервер ИИ. Остальное хранится только на телефоне.' }));
-    if (!askLog.length) root.append(h('div', { class: 'chips scroll' }, ASK_HINTS.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => ask(q) }))));
+    root.append(h('p', { class: 'cap', style: 'margin:0 6px', text: 'Для ответа задачи, траты, еда и последние заметки отправляются на сервер ИИ. Остальное хранится только на телефоне.' }));
+    const chips = !askLog.length ? h('div', { class: 'chips scroll' }, ASK_HINTS.map((q) => h('button', { class: 'chip', type: 'button', text: q, onclick: () => ask(q) }))) : null;
+    if (chips) root.append(chips);
     root.append(box);
+    root.append(h('div', { class: 'composer' }, card('cap-in', input, send)));
     draw();
     return root;
   }
