@@ -464,6 +464,39 @@
     return out.join('\n').slice(0, 7800);
   }
 
+  // ответ ии приходит с markdown: рисуем жирный, курсив, код, списки и заголовки без innerHTML
+  function mdInline(text, into) {
+    text.split(/(\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*|`[^`\n]+`)/).forEach((part) => {
+      if (!part) return;
+      if (/^\*\*[^*]+\*\*$/.test(part) || /^__[^_]+__$/.test(part)) into.append(h('strong', { text: part.slice(2, -2) }));
+      else if (/^\*[^*]+\*$/.test(part)) into.append(h('em', { text: part.slice(1, -1) }));
+      else if (/^`[^`]+`$/.test(part)) into.append(h('code', { text: part.slice(1, -1) }));
+      else into.append(part);
+    });
+    return into;
+  }
+  function mdBlock(text) {
+    const root = h('div', { class: 'md' });
+    let list = null, ordered = false;
+    String(text || '').replace(/\r/g, '').split('\n').forEach((raw) => {
+      const line = raw.trim();
+      const li = /^(?:[-*•]\s+|(\d+)[.)]\s+)(.*)$/.exec(line);
+      if (li) {
+        const ord = !!li[1];
+        if (!list || ordered !== ord) { list = h(ord ? 'ol' : 'ul'); ordered = ord; root.append(list); }
+        list.append(mdInline(li[2], h('li')));
+        return;
+      }
+      list = null;
+      if (!line) return;
+      const hd = /^#{1,6}\s+(.*)$/.exec(line);
+      if (hd) { root.append(mdInline(hd[1].replace(/\*\*/g, ''), h('p', { class: 'md-h' }))); return; }
+      if (/^[-*_]{3,}$/.test(line)) return;
+      root.append(mdInline(line, h('p')));
+    });
+    return root;
+  }
+
   let askLog = [];
   const ASK_HINTS = ['что у меня на сегодня?', 'сколько я потратил за неделю?', 'что я ел сегодня и сколько осталось ккал?', 'какие привычки я пропускаю?'];
 
@@ -477,7 +510,7 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
     const draw = () => {
       box.replaceChildren();
-      askLog.forEach((m) => box.append(card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t }))));
+      askLog.forEach((m) => box.append(card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), m.me ? h('p', { class: 'item-text', style: 'margin-top:8px;font-size:16px', text: m.t }) : h('div', { style: 'margin-top:8px' }, mdBlock(m.t)))));
     };
     let busy = false;
     const ask = (q) => {
