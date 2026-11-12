@@ -5,9 +5,9 @@ compatibility_date = "2026-11-01"
 [vars]
 # сайты, которым можно обращаться к воркеру, через запятую
 ALLOWED_ORIGINS = "https://gdev49df.github.io"
-# модели можно поменять здесь
-MODEL_FOOD = "qwen/qwen3.8-27b"
-MODEL_ASK = "llama-3.3-70b-versatile"
+# модели (необязательно): список через запятую, пробуются по очереди. по умолчанию список зашит в index.js
+# MODEL_ASK = "openai/gpt-oss-120b,llama-3.1-8b-instant"
+# MODEL_FOOD = "qwen/qwen3.8-27b"
 
 # ключ в файл не пишем. добавляется командой:
 #   npx wrangler secret put GROQ_API_KEY

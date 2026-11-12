@@ -26,20 +26,33 @@ function reply(status, data, origin) {
   return new Response(JSON.stringify(data), { status: status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors(origin)) });
 }
 
-// groq: формат как у openai chat completions
-async function llm(env, model, system, userContent, maxTokens, json) {
-  const body = { model: model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }] };
-  if (json) body.response_format = { type: 'json_object' };
-  const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.GROQ_API_KEY }, body: JSON.stringify(body) });
-  if (!r.ok) {
-    let msg = '';
-    try { const e = await r.json(); msg = (e.error && e.error.message) || ''; } catch (x) { /* тела нет */ }
-    throw new Error('groq ' + r.status + (msg ? ': ' + msg.slice(0, 160) : ''));
+// groq: формат как у openai chat completions.
+// модели пробуются по очереди: если одна недоступна на ключе (404/400/403), берётся следующая
+const ASK_MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant'];
+const FOOD_MODELS = ['qwen/qwen3.8-27b', 'meta-models/muse-spark-open'];
+const list = (v, def) => (v ? String(v).split(',').map((x) => x.trim()).filter(Boolean) : def);
+
+async function llm(env, models, system, userContent, maxTokens, json) {
+  let last = null;
+  for (const model of models) {
+    const body = { model: model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }] };
+    if (json) body.response_format = { type: 'json_object' };
+    const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.GROQ_API_KEY }, body: JSON.stringify(body) });
+    if (!r.ok) {
+      let msg = '';
+      try { const e = await r.json(); msg = (e.error && e.error.message) || ''; } catch (x) { /* тела нет */ }
+      last = new Error('groq ' + r.status + ' (' + model + ')' + (msg ? ': ' + msg.slice(0, 140) : ''));
+      if (r.status === 404 || r.status === 400 || r.status === 403 || r.status === 429) continue;
+      throw last;
+    }
+    const j = await r.json();
+    const text = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    // у некоторых моделей в ответе есть блок рассуждений, его не показываем
+    const clean = String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    if (clean) return clean;
+    last = new Error('groq: пустой ответ (' + model + ')');
   }
-  const j = await r.json();
-  const text = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
-  // у некоторых моделей в ответе есть блок рассуждений, его не показываем
-  return String(text).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  throw last || new Error('groq: нет моделей');
 }
 
 export default {
@@ -62,7 +75,7 @@ export default {
       if (body.mode === 'food') {
         const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
         if (!m) return reply(400, { error: 'image' }, origin);
-        const text = await llm(env, env.MODEL_FOOD || 'qwen/qwen3.8-27b', FOOD_SYSTEM, [
+        const text = await llm(env, list(env.MODEL_FOOD, FOOD_MODELS), FOOD_SYSTEM, [
           { type: 'text', text: 'Что на фото? Верни JSON.' },
           { type: 'image_url', image_url: { url: body.image } }
         ], 800, true);
@@ -79,7 +92,7 @@ export default {
         const q = String(body.question || '').trim().slice(0, 500);
         const ctx = String(body.context || '').slice(0, 8000);
         if (!q) return reply(400, { error: 'question' }, origin);
-        const answer = await llm(env, env.MODEL_ASK || 'llama-3.3-70b-versatile', ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);
+        const answer = await llm(env, list(env.MODEL_ASK, ASK_MODELS), ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);
         return reply(200, { answer: answer }, origin);
       }
 
