@@ -730,3 +730,12 @@ html { -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
 
 a.btn { color: var(--ink); text-decoration: none; display: flex; align-items: center; justify-content: center; }
 a.btn.solid { color: #111112; }
+
+/* первый экран знакомства: как поставить на экран «Домой» */
+.onb-steps { margin-top: 18px; }
+.onb-steps ol { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 10px; }
+.onb-steps li { counter-increment: s; display: flex; align-items: center; gap: 14px; padding: 13px 14px; border-radius: 16px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.onb-steps li::before { content: counter(s); flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: #111112; font-size: 13px; font-weight: 800; }
+.onb-steps li span { flex: 1; min-width: 0; }
+.onb-steps li svg.i { flex: none; width: 24px; height: 24px; color: var(--silver); }
+.onb-body p.onb-note { margin-top: 14px; font-size: 14px; line-height: 1.5; max-width: none; }
