@@ -594,3 +594,17 @@ svg.logo.think polygon:nth-child(6) { animation-delay: 1.1s; }
 @media (prefers-reduced-motion: reduce) {
   .rise, .md-reveal .md > *, svg.logo.think, svg.logo.think polygon, .splash svg.logo.big polygon, .thinking span { animation: none !important; }
 }
+
+/* как в чате клода: слова появляются по одному, ожидание — мерцающий текст рядом с лого */
+.rise { animation: fade-in .6s ease both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.w { animation: w-in .8s ease both; }
+@keyframes w-in { from { opacity: 0; filter: blur(5px); } to { opacity: 1; filter: blur(0); } }
+.md-reveal .md > * { animation: none; }
+.thinking span {
+  animation: shimmer 2.4s linear infinite; color: transparent;
+  background: linear-gradient(100deg, #6d6d73 30%, #fff 50%, #6d6d73 70%) 0 0 / 220% 100%;
+  -webkit-background-clip: text; background-clip: text;
+}
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) { .w, .rise, .thinking span { animation: none !important; } .thinking span { color: var(--silver); background: none; } }

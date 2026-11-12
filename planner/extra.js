@@ -500,6 +500,26 @@
   let askLog = [];
   const ASK_HINTS = ['что у меня на сегодня?', 'сколько я потратил за неделю?', 'что я ел сегодня и сколько осталось ккал?', 'какие привычки я пропускаю?'];
 
+  // текст ответа проявляется слово за словом, как при печати: каждое слово плавно выходит из размытия
+  function streamWords(el) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const total = nodes.reduce((n, t) => n + (t.nodeValue.match(/\S+/g) || []).length, 0);
+    const step = Math.min(0.05, 4 / Math.max(total, 1));
+    let n = 0;
+    nodes.forEach((t) => {
+      const frag = document.createDocumentFragment();
+      t.nodeValue.split(/(\s+)/).forEach((part) => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+        const w = document.createElement('span');
+        w.className = 'w'; w.textContent = part; w.style.animationDelay = (0.1 + n++ * step).toFixed(2) + 's';
+        frag.appendChild(w);
+      });
+      t.replaceWith(frag);
+    });
+  }
+
   function pAsk() {
     const root = h('div', { class: 'stack' });
     root.append(D.mark('ASK'));
@@ -517,11 +537,10 @@
         else if (m.wait) body = h('div', { class: 'thinking', role: 'status' }, D.logo('logo think'), h('span', { text: 'думаю…' }));
         else {
           body = h('div', { class: 'md-wrap', style: 'margin-top:8px' }, mdBlock(m.t));
-          // абзацы ответа проявляются по очереди
-          if (fresh) body.classList.add('md-reveal'), Array.prototype.forEach.call(body.querySelectorAll('.md > *'), (el, i) => el.style.setProperty('--i', Math.min(i, 12)));
+          if (fresh) streamWords(body);
         }
         const c = card(m.me ? 'flat' : 'dots', label(m.me ? 'ты' : 'ии'), body);
-        if (fresh) c.classList.add('rise');
+        if (fresh && m.me) c.classList.add('rise');
         box.append(c);
       });
     };
