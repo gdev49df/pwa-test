@@ -24,7 +24,9 @@
   const mark = () => { try { localStorage.setItem(KEY, '1'); } catch (e) { /* без памяти покажем снова */ } };
 
   function afterIntro() {
-    if (!D.S.name && D.askName) D.askName();
+    // сначала аккаунт (в нём же имя), потом, если имени всё ещё нет, спрашиваем его
+    const next = () => { if (!D.S.name && D.askName) D.askName(); };
+    if (D.requireAuth) D.requireAuth(next); else next();
   }
 
   function finish() {

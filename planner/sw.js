@@ -1,5 +1,5 @@
 // при изменении файлов меняй версию, чтобы кэш обновился
-const CACHE = 'ddx-v43';
+const CACHE = 'ddx-v45';
 const FILES = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const FILES = [
   './hubs.js',
   './extra.js',
   './capture.js',
+  './account.js',
   './onboard.js',
   './smooth.js',
   './manifest.json',

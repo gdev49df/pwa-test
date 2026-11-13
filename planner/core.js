@@ -175,6 +175,20 @@
     return s;
   }
 
+  // собирает полное состояние из «сырых» данных (из памяти телефона или из облака)
+  function fromRaw(r) {
+    const b = blank();
+    if (r && typeof r === 'object') {
+      Object.keys(b).forEach((k) => { if (r[k] != null) b[k] = r[k]; });
+      b.pro = Object.assign({ until: 0, used: [] }, b.pro);
+      b.goals = Object.assign(blank().goals, b.goals);
+      b.settings = Object.assign(blank().settings, b.settings);
+      b.focus = Object.assign({ active: null, log: [] }, b.focus);
+      b.tasks.forEach((t) => { t.repeat = L.normRule(t.repeat); if (!t.subs) t.subs = []; if (!t.kind) t.kind = 'task'; });
+    }
+    return b;
+  }
+
   function load() {
     try {
       let r = JSON.parse(localStorage.getItem(KEY));
@@ -182,16 +196,7 @@
         const old = JSON.parse(localStorage.getItem(OLD_KEY));
         if (old && typeof old === 'object') r = migrate(old);
       }
-      const b = blank();
-      if (r && typeof r === 'object') {
-        Object.keys(b).forEach((k) => { if (r[k] != null) b[k] = r[k]; });
-        b.pro = Object.assign({ until: 0, used: [] }, b.pro);
-        b.goals = Object.assign(blank().goals, b.goals);
-        b.settings = Object.assign(blank().settings, b.settings);
-        b.focus = Object.assign({ active: null, log: [] }, b.focus);
-        b.tasks.forEach((t) => { t.repeat = L.normRule(t.repeat); if (!t.subs) t.subs = []; if (!t.kind) t.kind = 'task'; });
-      }
-      return b;
+      return fromRaw(r);
     } catch (e) { return blank(); }
   }
 
@@ -206,6 +211,7 @@
   let saveFail = false;
   function save() {
     pushSoon();
+    if (D.onSave) D.onSave();
     try { localStorage.setItem(KEY, JSON.stringify(D.S)); saveFail = false; }
     catch (e) {
       // чаще всего кончилось место из-за фото еды: убираем самые старые фото и пробуем ещё раз
@@ -344,6 +350,25 @@
   const aiUsed = (kind) => usage()[AI_KIND[kind][0]] || 0;
   const aiLeft = (kind) => Math.max(0, aiCap(kind) - aiUsed(kind));
 
+  /* ---------- аккаунт: токен и метка синхронизации хранятся отдельно от данных ---------- */
+  const ACC_KEY = 'ddx-acc';
+  const acc = {
+    get() { try { return JSON.parse(localStorage.getItem(ACC_KEY)) || null; } catch (e) { return null; } },
+    set(o) { try { localStorage.setItem(ACC_KEY, JSON.stringify(o)); } catch (e) { /* без памяти вход не сохранится */ } },
+    clear() { try { localStorage.removeItem(ACC_KEY); } catch (e) { /* нет */ } }
+  };
+  // запрос к воркеру с токеном. сеть недоступна: бросает ошибку; иначе { ok, status, j }
+  async function api(path, body, method, signal) {
+    const a = acc.get();
+    const headers = { 'Content-Type': 'application/json' };
+    if (a && a.token) headers.Authorization = 'Bearer ' + a.token;
+    const r = await fetch(String(C.ai.url).replace(/\/?$/, '/') + path, { method: method || 'POST', headers: headers, body: method === 'GET' ? undefined : JSON.stringify(body || {}), signal: signal });
+    let j = null;
+    try { j = await r.json(); } catch (e) { /* тела нет */ }
+    if (r.status === 401 && a && a.token && D.onAuthLost) D.onAuthLost();
+    return { ok: r.ok, status: r.status, j: j || {} };
+  }
+
   // анонимный номер устройства: по нему воркер считает лимиты ии
   function deviceId() {
     let v = '';
@@ -379,10 +404,8 @@
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 40000);
     try {
-      const payload = Object.assign({}, body, { device: deviceId(), pro: isPro(), code: isPro() ? (D.S.pro.code || '') : '' });
-      const r = await fetch(C.ai.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctl.signal });
-      let j = null;
-      try { j = await r.json(); } catch (x) { /* тела нет */ }
+      const resp = await api('', body, 'POST', ctl.signal);
+      const r = { status: resp.status, ok: resp.ok }, j = resp.j;
       // сервер считает точнее телефона: подгоняем счётчики под его ответ
       if (j && j.quota) { const u = usage(); u.aiAsk = j.quota.ask.used; u.aiFood = j.quota.food.used; save(); }
       if (r.status === 429 && j && j.error === 'limit') throw limitErr();
@@ -777,7 +800,7 @@
     dateLabel, dueLabel, stampOf, ago, save, isPro, isLife, lim, usage, openSheet, closeSheet, ask, toast, limitHit, limitLine,
     activeTasks, activeReminders, addTask, toggleTask, addNote, addCat, monthMoney, addMoney, addMeal, addWater,
     listFor, addListItems, addHabit, markHabit, setLast, dueTs, notify, checkReminders, downloadIcs,
-    isInstalled, aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
+    acc, api, fromRaw, isInstalled, aiOn, aiCall, aiLeft, aiCap, aiUsed, aiLimit, pushSupported, pushOn, pushEnable, pushOff, pushTest, pushSync, focusLeft, startFocus, finishFocus, tickFocus, page, go, render, refresh, buildTabs, updateTabs, blank
   });
   // Object.assign копирует значение, а не геттер, поэтому маршрут отдаём отдельно
   Object.defineProperty(D, 'route', { get: () => route });

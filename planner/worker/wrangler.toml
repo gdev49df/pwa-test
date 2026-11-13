@@ -20,3 +20,9 @@ crons = ["* * * * *"]
 # [[kv_namespaces]]
 # binding = "KV"
 # id = "..."
+
+# аккаунты: база D1 (ddx-db). привязка называется DB. таблицы воркер создаёт сам при первом запросе
+[[d1_databases]]
+binding = "DB"
+database_name = "ddx-db"
+database_id = "32ef1838-5168-4104-aa23-b0a45b322d21"

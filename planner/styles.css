@@ -780,3 +780,15 @@ html.typing-lock, body.typing { overscroll-behavior: none; }
 
 /* нижняя панель всегда поверх и не схлопывается */
 .dock { z-index: 30; transform: translateZ(0); }
+
+/* вход и регистрация */
+.auth .onb-no { font-size: clamp(64px, 20vw, 96px); }
+.auth-body .form { display: grid; gap: 10px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 18px; padding: 5px; border-radius: 16px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); }
+.auth-tabs button { padding: 11px 8px; border-radius: 12px; font-size: 15px; font-weight: 650; color: var(--mute); transition: background .4s, color .4s; }
+.auth-tabs button.on { background: var(--paper); color: #111112; }
+.auth-err { min-height: 18px; margin: 0; font-size: 14px; line-height: 1.4; color: #ff8a80; }
+.auth .cap { margin: 2px 2px 0; }
+.auth .onb-foot { padding-bottom: 24px; }
+.auth-tabs button { background: transparent !important; border: 0 !important; box-shadow: none !important; color: #c2c2c8; }
+.auth-tabs button.on { background: var(--paper) !important; color: #111112 !important; }

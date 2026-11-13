@@ -19,7 +19,7 @@ function cors(origin) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin'
   };
@@ -216,37 +216,216 @@ async function sha256hex(s) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// pro: проверяем код активации (список зашит в BUILTIN_CODES, можно добавить свои в переменную PRO_CODES) и привязываем его к первому устройству.
-// если список пуст, верим приложению, но лимиты pro всё равно ограничены
-async function isProDevice(env, body, device) {
-  const list = (BUILTIN_CODES + ',' + String(env.PRO_CODES || '')).split(',').map((s) => s.trim()).filter(Boolean);
-  if (!list.length) return body.pro === true;
-  const code = String(body.code || '').slice(0, 64);
-  if (!code) return false;
-  const hash = await sha256hex(code);
-  const ent = list.map((x) => x.split(':')).find((x) => x[0] === hash);
-  if (!ent) return false;
-  const days = Number(ent[1]) || 31;
-  const key = 'p:' + hash;
-  let rec = null;
-  try { rec = JSON.parse(await env.KV.get(key)); } catch (e) { rec = null; }
-  if (!rec) { rec = { device: device, at: Date.now() }; await env.KV.put(key, JSON.stringify(rec)); }
-  if (!(rec.device === device && Date.now() < rec.at + days * 86400000)) return false;
-  return days >= 36000 ? 'life' : true;
+/* ---------- аккаунты (база D1, привязка DB) ---------- */
+
+let schemaReady = false;
+async function dbInit(env) {
+  if (schemaReady) return;
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT NOT NULL UNIQUE, name TEXT, salt TEXT NOT NULL, hash TEXT NOT NULL, pro_until INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created INTEGER NOT NULL, last INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS data (user_id INTEGER PRIMARY KEY, json TEXT NOT NULL, updated INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS codes (hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, days INTEGER NOT NULL, at INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id)')
+  ]);
+  schemaReady = true;
 }
 
-// списывает одну попытку. возвращает { info, refund } или { status, payload }
-async function takeQuota(env, body, kind) {
-  if (!env.KV) return { info: null, refund: async () => {} };
-  const device = String(body.device || '');
-  if (!/^[A-Za-z0-9-]{16,64}$/.test(device)) return { status: 400, payload: { error: 'device' } };
+const hex = (buf) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+const unhex = (s) => new Uint8Array((s.match(/../g) || []).map((x) => parseInt(x, 16)));
+
+// пароль: pbkdf2-sha256, 100 000 кругов (максимум, который разрешает воркер), своя соль у каждого
+async function hashPassword(pass, saltHex) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveBits']);
+  return hex(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: unhex(saltHex), iterations: 100000 }, key, 256));
+}
+function sameHex(a, b) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+const randHex = (n) => hex(crypto.getRandomValues(new Uint8Array(n)));
+const cleanLogin = (s) => String(s || '').trim().toLowerCase();
+const LOGIN_RE = /^[a-z0-9_.]{3,24}$/;
+const LIFE_MS = 20 * 365 * 86400000;
+
+const userInfo = (u) => ({ id: u.id, login: u.login, name: u.name || '', pro_until: u.pro_until || 0, life: (u.pro_until || 0) - Date.now() > LIFE_MS });
+
+// токен лежит у человека, в базе только его sha-256
+async function startSession(env, userId) {
+  const token = randHex(32);
+  const now = Date.now();
+  await env.DB.prepare('INSERT INTO sessions (token, user_id, created, last) VALUES (?, ?, ?, ?)').bind(await sha256hex(token), userId, now, now).run();
+  return token;
+}
+
+async function authUser(req, env) {
+  if (!env.DB) return null;
+  const m = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.get('Authorization') || '');
+  if (!m) return null;
+  await dbInit(env);
+  const th = await sha256hex(m[1]);
+  const row = await env.DB.prepare('SELECT u.id, u.login, u.name, u.pro_until, s.last AS last FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?').bind(th).first();
+  if (!row) return null;
+  if (Date.now() - row.last > 3600000) { try { await env.DB.prepare('UPDATE sessions SET last = ? WHERE token = ?').bind(Date.now(), th).run(); } catch (e) { /* не страшно */ } }
+  return row;
+}
+
+// ограничитель: не больше max событий за окно (ключи живут в KV)
+async function hit(env, key, max, ttl) {
+  if (!env.KV) return true;
+  const n = num(await env.KV.get(key));
+  if (n >= max) return false;
+  await env.KV.put(key, String(n + 1), { expirationTtl: ttl });
+  return true;
+}
+
+async function authRoute(req, env, path, origin) {
+  if (!env.DB) return reply(503, { error: 'no db', detail: 'в воркере не привязана база D1 (переменная DB)' }, origin);
+  await dbInit(env);
+  const ip = req.headers.get('CF-Connecting-IP') || 'x';
   const day = dayKey(env);
-  const pro = await isProDevice(env, body, device);
-  const cap = (pro === 'life' ? LIFE_Q : pro ? PRO_Q : FREE_Q);
-  const qk = 'q:' + device + ':' + day, gk = 'g:' + day;
+
+  if (path === '/data/get' && req.method === 'GET') {
+    const u = await authUser(req, env);
+    if (!u) return reply(401, { error: 'auth' }, origin);
+    const row = await env.DB.prepare('SELECT json, updated FROM data WHERE user_id = ?').bind(u.id).first();
+    return reply(200, row ? { json: row.json, updated: row.updated } : { json: null, updated: 0 }, origin);
+  }
+  if (req.method !== 'POST') return reply(405, { error: 'method' }, origin);
+  const raw = await req.text();
+  if (raw.length > 1000000) return reply(413, { error: 'too big' }, origin);
+  let b;
+  try { b = JSON.parse(raw); } catch (e) { return reply(400, { error: 'json' }, origin); }
+
+  if (path === '/auth/register') {
+    const login = cleanLogin(b.login), pass = String(b.password || ''), name = String(b.name || '').trim().slice(0, 24);
+    if (!LOGIN_RE.test(login)) return reply(400, { error: 'login', detail: 'логин: 3–24 символа, латиница, цифры, точка и подчёркивание' }, origin);
+    if (pass.length < 6 || pass.length > 100) return reply(400, { error: 'password', detail: 'пароль: от 6 символов' }, origin);
+    if (!(await hit(env, 'reg:' + ip + ':' + day, 5, 172800))) return reply(429, { error: 'rate', detail: 'с этого адреса сегодня уже много регистраций, попробуй завтра' }, origin);
+    const salt = randHex(16);
+    const hash = await hashPassword(pass, salt);
+    try {
+      const r = await env.DB.prepare('INSERT INTO users (login, name, salt, hash, pro_until, created) VALUES (?, ?, ?, ?, 0, ?)').bind(login, name, salt, hash, Date.now()).run();
+      const id = r.meta.last_row_id;
+      const token = await startSession(env, id);
+      return reply(200, { token: token, user: userInfo({ id: id, login: login, name: name, pro_until: 0 }), hasData: false }, origin);
+    } catch (e) {
+      if (/UNIQUE/i.test(String(e.message || e))) return reply(409, { error: 'taken', detail: 'такой логин уже занят' }, origin);
+      throw e;
+    }
+  }
+
+  if (path === '/auth/login') {
+    const login = cleanLogin(b.login), pass = String(b.password || '');
+    if (!LOGIN_RE.test(login) || !pass) return reply(400, { error: 'login', detail: 'введи логин и пароль' }, origin);
+    const hour = new Date().toISOString().slice(0, 13);
+    const fk = 'lg:' + login + ':' + hour;
+    if (env.KV && num(await env.KV.get(fk)) >= 10) return reply(429, { error: 'rate', detail: 'слишком много неудачных попыток, попробуй через час' }, origin);
+    const u = await env.DB.prepare('SELECT id, login, name, salt, hash, pro_until FROM users WHERE login = ?').bind(login).first();
+    const ok = u ? sameHex(await hashPassword(pass, u.salt), u.hash) : (await hashPassword(pass, '00'.repeat(16)), false);
+    if (!ok) {
+      if (env.KV) await env.KV.put(fk, String(num(await env.KV.get(fk)) + 1), { expirationTtl: 3600 });
+      return reply(401, { error: 'bad', detail: 'неверный логин или пароль' }, origin);
+    }
+    const token = await startSession(env, u.id);
+    const has = await env.DB.prepare('SELECT updated FROM data WHERE user_id = ?').bind(u.id).first();
+    return reply(200, { token: token, user: userInfo(u), hasData: !!has }, origin);
+  }
+
+  const u = await authUser(req, env);
+  if (!u) return reply(401, { error: 'auth' }, origin);
+
+  if (path === '/auth/me') return reply(200, { user: userInfo(u) }, origin);
+
+  if (path === '/auth/logout') {
+    const m = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.get('Authorization') || '');
+    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(await sha256hex(m[1])).run();
+    return reply(200, { ok: true }, origin);
+  }
+
+  if (path === '/auth/password') {
+    const full = await env.DB.prepare('SELECT salt, hash FROM users WHERE id = ?').bind(u.id).first();
+    const np = String(b.newPassword || '');
+    if (np.length < 6 || np.length > 100) return reply(400, { error: 'password', detail: 'новый пароль: от 6 символов' }, origin);
+    if (!sameHex(await hashPassword(String(b.password || ''), full.salt), full.hash)) return reply(401, { error: 'bad', detail: 'старый пароль неверный' }, origin);
+    const salt = randHex(16);
+    await env.DB.batch([
+      env.DB.prepare('UPDATE users SET salt = ?, hash = ? WHERE id = ?').bind(salt, await hashPassword(np, salt), u.id),
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').bind(u.id, await sha256hex(/^Bearer ([a-f0-9]{64})$/.exec(req.headers.get('Authorization'))[1]))
+    ]);
+    return reply(200, { ok: true }, origin);
+  }
+
+  if (path === '/auth/delete') {
+    const full = await env.DB.prepare('SELECT salt, hash FROM users WHERE id = ?').bind(u.id).first();
+    if (!sameHex(await hashPassword(String(b.password || ''), full.salt), full.hash)) return reply(401, { error: 'bad', detail: 'пароль неверный' }, origin);
+    // коды активации остаются «использованными», чтобы их нельзя было применить снова
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id),
+      env.DB.prepare('DELETE FROM data WHERE user_id = ?').bind(u.id),
+      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id)
+    ]);
+    return reply(200, { ok: true }, origin);
+  }
+
+  if (path === '/auth/name') {
+    await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(String(b.name || '').trim().slice(0, 24), u.id).run();
+    return reply(200, { ok: true }, origin);
+  }
+
+  // данные приложения целиком одним документом. base — метка, с которой телефон последний раз синхронизировался
+  if (path === '/data/put') {
+    const json = String(b.json || '');
+    if (json.length < 2 || json.length > 900000) return reply(413, { error: 'size', detail: 'данных слишком много для облака' }, origin);
+    try { JSON.parse(json); } catch (e) { return reply(400, { error: 'json' }, origin); }
+    const cur = await env.DB.prepare('SELECT updated FROM data WHERE user_id = ?').bind(u.id).first();
+    const base = Number(b.base) || 0;
+    if (cur && cur.updated !== base && !b.force) {
+      const full = await env.DB.prepare('SELECT json, updated FROM data WHERE user_id = ?').bind(u.id).first();
+      return reply(409, { error: 'conflict', json: full.json, updated: full.updated }, origin);
+    }
+    const now = Math.max(Date.now(), (cur ? cur.updated : 0) + 1);
+    await env.DB.prepare('INSERT INTO data (user_id, json, updated) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET json = excluded.json, updated = excluded.updated').bind(u.id, json, now).run();
+    return reply(200, { updated: now }, origin);
+  }
+
+  // активация кода: код сгорает за аккаунтом навсегда, поделиться им нельзя
+  if (path === '/pro/activate') {
+    const norm = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 40);
+    if (!norm) return reply(400, { error: 'code', detail: 'введи код' }, origin);
+    if (!(await hit(env, 'act:' + u.id + ':' + day, 20, 172800))) return reply(429, { error: 'rate', detail: 'слишком много попыток, попробуй завтра' }, origin);
+    const hash = await sha256hex(norm);
+    const list = (BUILTIN_CODES + ',' + String(env.PRO_CODES || '')).split(',').map((s) => s.trim()).filter(Boolean);
+    const ent = list.map((x) => x.split(':')).find((x) => x[0] === hash);
+    if (!ent) return reply(404, { error: 'code', detail: 'код не подошёл. проверь, нет ли опечатки' }, origin);
+    const days = Number(ent[1]) || 31;
+    const used = await env.DB.prepare('SELECT user_id FROM codes WHERE hash = ?').bind(hash).first();
+    if (used) return reply(409, { error: 'used', detail: used.user_id === u.id ? 'этот код уже активирован на твоём аккаунте' : 'этот код уже использован' }, origin);
+    const until = Math.max(Date.now(), u.pro_until || 0) + days * 86400000;
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO codes (hash, user_id, days, at) VALUES (?, ?, ?, ?)').bind(hash, u.id, days, Date.now()),
+      env.DB.prepare('UPDATE users SET pro_until = ? WHERE id = ?').bind(until, u.id)
+    ]);
+    return reply(200, { pro_until: until, life: until - Date.now() > LIFE_MS }, origin);
+  }
+
+  return reply(404, { error: 'route' }, origin);
+}
+
+// списывает одну попытку ии с аккаунта. возвращает { info, refund } или { status, payload }
+async function takeQuota(env, user, kind) {
+  if (!env.KV) return { info: null, refund: async () => {} };
+  const now = Date.now();
+  const life = (user.pro_until || 0) - now > LIFE_MS;
+  const pro = (user.pro_until || 0) > now;
+  const cap = life ? LIFE_Q : pro ? PRO_Q : FREE_Q;
+  const day = dayKey(env);
+  const qk = 'q:u' + user.id + ':' + day, gk = 'g:' + day;
   let q = { ask: 0, food: 0 };
   try { q = Object.assign(q, JSON.parse(await env.KV.get(qk))); } catch (e) { /* первый запрос за день */ }
-  const info = () => ({ pro: pro, ask: { used: q.ask, limit: cap.ask }, food: { used: q.food, limit: cap.food } });
+  const info = () => ({ pro: life ? 'life' : pro, ask: { used: q.ask, limit: cap.ask }, food: { used: q.food, limit: cap.food } });
   if (q[kind] >= cap[kind]) return { status: 429, payload: { error: 'limit', kind: kind, quota: info() } };
   const g = num(await env.KV.get(gk));
   if (g >= GLOBAL_DAY) return { status: 503, payload: { error: 'busy', detail: 'на сегодня общий лимит ии исчерпан, попробуй завтра' } };
@@ -269,6 +448,9 @@ export default {
     if (path.indexOf('/push/') === 0) {
       try { return await pushRoute(req, env, path, origin); } catch (e) { return reply(502, { error: 'push', detail: String(e.message || e).slice(0, 200) }, origin); }
     }
+    if (path.indexOf('/auth/') === 0 || path.indexOf('/data/') === 0 || path.indexOf('/pro/') === 0) {
+      try { return await authRoute(req, env, path, origin); } catch (e) { return reply(502, { error: 'db', detail: String(e.message || e).slice(0, 200) }, origin); }
+    }
     if (req.method !== 'POST') return reply(405, { error: 'method' }, origin);
     if (!env.GROQ_API_KEY) return reply(500, { error: 'no key', detail: 'в воркере нет секрета GROQ_API_KEY' }, origin);
 
@@ -277,12 +459,16 @@ export default {
     let body;
     try { body = JSON.parse(raw); } catch (e) { return reply(400, { error: 'json' }, origin); }
 
+    // ии только для вошедших в аккаунт: лимиты считаются на человека, а не на устройство
+    const user = await authUser(req, env);
+    if (!user) return reply(401, { error: 'auth', detail: 'нужно войти в аккаунт' }, origin);
+
     let refund = async () => {};
     try {
       if (body.mode === 'food') {
         const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
         if (!m) return reply(400, { error: 'image' }, origin);
-        const tq = await takeQuota(env, body, 'food');
+        const tq = await takeQuota(env, user, 'food');
         if (tq.status) return reply(tq.status, tq.payload, origin);
         refund = tq.refund;
         const text = await llm(env, list(env.MODEL_FOOD, FOOD_MODELS), FOOD_SYSTEM, [
@@ -302,7 +488,7 @@ export default {
         const q = String(body.question || '').trim().slice(0, 500);
         const ctx = String(body.context || '').slice(0, 8000);
         if (!q) return reply(400, { error: 'question' }, origin);
-        const tq = await takeQuota(env, body, 'ask');
+        const tq = await takeQuota(env, user, 'ask');
         if (tq.status) return reply(tq.status, tq.payload, origin);
         refund = tq.refund;
         const answer = await llm(env, list(env.MODEL_ASK, ASK_MODELS), ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);
