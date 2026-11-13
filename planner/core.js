@@ -59,6 +59,8 @@
     arrowup: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',
     left: '<path d="M14 6l-6 6 6 6"/>',
     right: '<path d="M10 6l6 6-6 6"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',

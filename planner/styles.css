@@ -832,3 +832,10 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 .sq-hints { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: -4px; }
 .sq-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 0; }
 mark { background: rgb(var(--w) / .16); color: inherit; border-radius: 4px; padding: 0 2px; }
+
+/* поле пароля с глазом */
+.pw-box { position: relative; }
+.pw-box .field { padding-right: 52px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; color: var(--mute); border-radius: 12px; }
+.pw-eye[aria-pressed="true"] { color: var(--ink); }
+.pw-eye svg { width: 22px; height: 22px; }

@@ -216,7 +216,7 @@
         h('div', { class: 'onb-no', 'aria-hidden': 'true', text: '@' }),
         h('h2', { text: note || 'Войди в аккаунт' }),
         tabs,
-        h('div', { class: 'form', style: 'margin-top:14px' }, name, login, pass, err, hint)),
+        h('div', { class: 'form', style: 'margin-top:14px' }, name, login, eye(pass), err, hint)),
       h('div', { class: 'onb-foot' }, go));
     draw();
     requestAnimationFrame(() => box.classList.add('show'));
@@ -239,6 +239,23 @@
   };
 
   /* ---------- карточка аккаунта в настройках ---------- */
+
+  // поле пароля с кнопкой «показать»
+  function eye(input) {
+    const btn = h('button', { class: 'pw-eye', type: 'button', 'aria-label': 'показать пароль', 'aria-pressed': 'false' }, D.icon('eye'));
+    btn.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.replaceChildren(D.icon(show ? 'eyeoff' : 'eye'));
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      btn.setAttribute('aria-label', show ? 'скрыть пароль' : 'показать пароль');
+      input.focus();
+    });
+    const box = h('div', { class: 'pw-box' }, input, btn);
+    Object.defineProperty(box, 'value', { get: () => input.value });
+    box.focus = () => input.focus();
+    return box;
+  }
 
   function sheetForm(title, text, fields, yes, run) {
     D.openSheet((panel) => {
@@ -283,14 +300,14 @@
         h('div', { class: 'kv' }, h('span', { text: 'логин' }), h('span', { class: 'muted', text: a.login })),
         h('div', { class: 'kv' }, h('span', { text: 'облако' }), h('span', { class: 'muted', text: a.dirty ? 'сохраняется…' : when ? 'сохранено в ' + when : 'сохранено' }))),
       h('div', { class: 'form', style: 'margin-top:12px' },
-        h('button', { class: 'btn block', type: 'button', text: 'сменить пароль', onclick: () => sheetForm('сменить пароль', '', [pwOld, pwNew], 'сменить', async (v) => {
+        h('button', { class: 'btn block', type: 'button', text: 'сменить пароль', onclick: () => sheetForm('сменить пароль', '', [eye(pwOld), eye(pwNew)], 'сменить', async (v) => {
           if (v[1].length < 6) return 'новый пароль: от 6 символов';
           const r = await D.api('auth/password', { password: v[0], newPassword: v[1] });
           if (!r.ok) return r.j.detail || 'не получилось';
           D.closeSheet(); toast('пароль изменён, на других устройствах войди заново');
         }) }),
         h('button', { class: 'btn block', type: 'button', text: 'выйти из аккаунта', onclick: () => D.ask('выйти из аккаунта?', 'Данные сохранены в облаке и вернутся после входа. С этого телефона они сотрутся.', 'выйти', logout) }),
-        h('button', { class: 'btn block', type: 'button', text: 'удалить аккаунт', onclick: () => sheetForm('удалить аккаунт?', 'Аккаунт, облачные данные и Pro удалятся без возможности восстановления. Введи пароль.', [delPw], 'удалить навсегда', async (v) => {
+        h('button', { class: 'btn block', type: 'button', text: 'удалить аккаунт', onclick: () => sheetForm('удалить аккаунт?', 'Аккаунт, облачные данные и Pro удалятся без возможности восстановления. Введи пароль.', [eye(delPw)], 'удалить навсегда', async (v) => {
           const r = await D.api('auth/delete', { password: v[0] });
           if (!r.ok) return r.j.detail || 'не получилось';
           D.closeSheet(); wipeLocal(); showAuth(null, 'Создай аккаунт');
