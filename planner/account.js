@@ -224,7 +224,7 @@
 
   // вызывается после знакомства: без аккаунта дальше не пускаем
   D.requireAuth = (done) => {
-    if (!D.aiOn()) { done(); return; }
+    if (!D.C.accounts || !D.aiOn()) { done(); return; }
     const a = D.acc.get();
     if (a && a.token) { done(); pull(); refreshMe(); return; }
     showAuth(done);

@@ -216,6 +216,47 @@ async function sha256hex(s) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// pro: проверяем код активации (список зашит в BUILTIN_CODES, можно добавить свои в переменную PRO_CODES) и привязываем его к первому устройству.
+// если список пуст, верим приложению, но лимиты pro всё равно ограничены
+async function isProDevice(env, body, device) {
+  const list = (BUILTIN_CODES + ',' + String(env.PRO_CODES || '')).split(',').map((s) => s.trim()).filter(Boolean);
+  if (!list.length) return body.pro === true;
+  const code = String(body.code || '').slice(0, 64);
+  if (!code) return false;
+  const hash = await sha256hex(code);
+  const ent = list.map((x) => x.split(':')).find((x) => x[0] === hash);
+  if (!ent) return false;
+  const days = Number(ent[1]) || 31;
+  const key = 'p:' + hash;
+  let rec = null;
+  try { rec = JSON.parse(await env.KV.get(key)); } catch (e) { rec = null; }
+  if (!rec) { rec = { device: device, at: Date.now() }; await env.KV.put(key, JSON.stringify(rec)); }
+  if (!(rec.device === device && Date.now() < rec.at + days * 86400000)) return false;
+  return days >= 36000 ? 'life' : true;
+}
+
+// списывает одну попытку. возвращает { info, refund } или { status, payload }
+async function takeQuotaDevice(env, body, kind) {
+  if (!env.KV) return { info: null, refund: async () => {} };
+  const device = String(body.device || '');
+  if (!/^[A-Za-z0-9-]{16,64}$/.test(device)) return { status: 400, payload: { error: 'device' } };
+  const day = dayKey(env);
+  const pro = await isProDevice(env, body, device);
+  const cap = (pro === 'life' ? LIFE_Q : pro ? PRO_Q : FREE_Q);
+  const qk = 'q:' + device + ':' + day, gk = 'g:' + day;
+  let q = { ask: 0, food: 0 };
+  try { q = Object.assign(q, JSON.parse(await env.KV.get(qk))); } catch (e) { /* первый запрос за день */ }
+  const info = () => ({ pro: pro, ask: { used: q.ask, limit: cap.ask }, food: { used: q.food, limit: cap.food } });
+  if (q[kind] >= cap[kind]) return { status: 429, payload: { error: 'limit', kind: kind, quota: info() } };
+  const g = num(await env.KV.get(gk));
+  if (g >= GLOBAL_DAY) return { status: 503, payload: { error: 'busy', detail: 'на сегодня общий лимит ии исчерпан, попробуй завтра' } };
+  q[kind]++;
+  await Promise.all([env.KV.put(qk, JSON.stringify(q), { expirationTtl: 172800 }), env.KV.put(gk, String(g + 1), { expirationTtl: 172800 })]);
+  // если запрос к модели не удался, попытку возвращаем
+  const refund = async () => { try { q[kind] = Math.max(0, q[kind] - 1); await env.KV.put(qk, JSON.stringify(q), { expirationTtl: 172800 }); } catch (e) { /* не страшно */ } };
+  return { info: info, refund: refund };
+}
+
 /* ---------- аккаунты (база D1, привязка DB) ---------- */
 
 let schemaReady = false;
@@ -459,16 +500,17 @@ export default {
     let body;
     try { body = JSON.parse(raw); } catch (e) { return reply(400, { error: 'json' }, origin); }
 
-    // ии только для вошедших в аккаунт: лимиты считаются на человека, а не на устройство
+    // с аккаунтом лимиты считаются на человека, без аккаунта (пока не включено REQUIRE_AUTH=1) на устройство
     const user = await authUser(req, env);
-    if (!user) return reply(401, { error: 'auth', detail: 'нужно войти в аккаунт' }, origin);
+    if (!user && String(env.REQUIRE_AUTH || '') === '1') return reply(401, { error: 'auth', detail: 'нужно войти в аккаунт' }, origin);
+    const quota = (k) => (user ? takeQuota(env, user, k) : takeQuotaDevice(env, body, k));
 
     let refund = async () => {};
     try {
       if (body.mode === 'food') {
         const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
         if (!m) return reply(400, { error: 'image' }, origin);
-        const tq = await takeQuota(env, user, 'food');
+        const tq = await quota('food');
         if (tq.status) return reply(tq.status, tq.payload, origin);
         refund = tq.refund;
         const text = await llm(env, list(env.MODEL_FOOD, FOOD_MODELS), FOOD_SYSTEM, [
@@ -488,7 +530,7 @@ export default {
         const q = String(body.question || '').trim().slice(0, 500);
         const ctx = String(body.context || '').slice(0, 8000);
         if (!q) return reply(400, { error: 'question' }, origin);
-        const tq = await takeQuota(env, user, 'ask');
+        const tq = await quota('ask');
         if (tq.status) return reply(tq.status, tq.payload, origin);
         refund = tq.refund;
         const answer = await llm(env, list(env.MODEL_ASK, ASK_MODELS), ASK_SYSTEM, 'Данные пользователя:\n' + ctx + '\n\nВопрос: ' + q, 700, false);

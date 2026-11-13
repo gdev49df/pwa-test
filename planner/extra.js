@@ -756,12 +756,25 @@
     const activate = async () => {
       const norm = L.normCode(code.value);
       if (!norm) { code.focus(); return; }
-      msg.textContent = 'проверяю…';
-      try {
-        const err = await D.activateCode(norm);
-        if (err) { msg.textContent = err; return; }
-        msg.textContent = ''; toast('pro активирован'); refresh();
-      } catch (x) { msg.textContent = 'нет связи с сервером. проверь интернет'; }
+      if (C.accounts) {
+        // с аккаунтами код проверяет и сжигает сервер
+        msg.textContent = 'проверяю…';
+        try {
+          const err = await D.activateCode(norm);
+          if (err) { msg.textContent = err; return; }
+          msg.textContent = ''; toast('pro активирован'); refresh();
+        } catch (x) { msg.textContent = 'нет связи с сервером. проверь интернет'; }
+        return;
+      }
+      if (!(window.crypto && crypto.subtle)) { msg.textContent = 'Проверка кода недоступна в этом режиме. Открой приложение по https-ссылке.'; return; }
+      const hash = await sha256(norm);
+      const days = C.codes[hash];
+      if (!days) { msg.textContent = 'Код не подошёл. Проверь, нет ли опечатки.'; return; }
+      if (S.pro.used.includes(hash)) { msg.textContent = 'Этот код уже активирован на этом устройстве.'; return; }
+      S.pro.until = Math.max(Date.now(), S.pro.until) + days * 86400000;
+      S.pro.used.push(hash);
+      S.pro.code = norm;   // воркер проверит код и привяжет ии-лимиты pro к этому устройству
+      save(); toast('pro активирован'); refresh();
     };
     code.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); activate(); } });
     root.append(card('', label('код активации'),

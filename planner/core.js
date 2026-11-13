@@ -404,7 +404,9 @@
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 40000);
     try {
-      const resp = await api('', body, 'POST', ctl.signal);
+      // без аккаунтов воркер считает лимиты по номеру устройства и коду активации
+      const legacy = C.accounts && acc.get() ? {} : { device: deviceId(), pro: isPro(), code: isPro() ? (D.S.pro.code || '') : '' };
+      const resp = await api('', Object.assign({}, body, legacy), 'POST', ctl.signal);
       const r = { status: resp.status, ok: resp.ok }, j = resp.j;
       // сервер считает точнее телефона: подгоняем счётчики под его ответ
       if (j && j.quota) { const u = usage(); u.aiAsk = j.quota.ask.used; u.aiFood = j.quota.food.used; save(); }
