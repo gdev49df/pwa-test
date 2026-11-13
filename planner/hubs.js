@@ -95,7 +95,7 @@
     root.append(
       tapCard('tile slim', () => go('stats'), label('тренды'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'твоя статистика' })),
       D.aiOn()
-        ? tapCard('tile slim', () => go('ask'), label('✦ ии'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'спроси свою жизнь' }))
+        ? tapCard('tile slim', () => go('ask'), label('✦ ddx ai'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'спроси свою жизнь' }))
         : tapCard('tile slim', () => go('search'), label('✦ поиск'), h('p', { class: 'lead', style: 'font-weight:400;color:var(--silver)', text: 'найди любую запись' }))
     );
 
