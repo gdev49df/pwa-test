@@ -228,7 +228,7 @@
     const a = D.acc.get();
     if (a && a.token) { done(); pull(); refreshMe(); return; }
     // воркер без базы D1 или старой версии: входить некуда, пускаем без аккаунта, чтобы приложение не стало кирпичом
-    D.api('auth/me', null, 'GET').then((r) => { if (r.status === 401) showAuth(done); else done(); }).catch(() => showAuth(done));
+    D.api('auth/me', {}).then((r) => { if (r.status === 401) showAuth(done); else done(); }).catch(() => showAuth(done));
   };
 
   // сервер сказал, что токен недействителен (вышли на другом устройстве, сменили пароль)
