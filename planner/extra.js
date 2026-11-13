@@ -546,7 +546,7 @@
     if (!D.aiOn()) { root.append(h('p', { class: 'mark-cap', text: 'ИИ пока не подключён: нужен адрес воркера в config.js.' })); return root; }
     const box = h('div', { class: 'chat' });
     const input = h('input', { class: 'field', placeholder: 'Спроси свою жизнь…', maxlength: '300', enterkeyhint: 'send', 'aria-label': 'вопрос' });
-    const send = h('button', { class: 'ib go', type: 'button', 'aria-label': 'спросить', onclick: () => ask(input.value) }, icon('plus'));
+    const send = h('button', { class: 'ib go', type: 'button', 'aria-label': 'спросить', onclick: () => ask(input.value) }, icon('arrowup'));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ask(input.value); } });
     // обычный чат: свои сообщения пузырьком справа, ответ ии просто текстом без рамки
     const draw = () => {

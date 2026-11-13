@@ -56,6 +56,7 @@
     menu: '<path d="M4 8h16M4 16h16"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     plus: '<path d="M12 3v18M3 12h18"/>',
+    arrowup: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     left: '<path d="M14 6l-6 6 6 6"/>',
