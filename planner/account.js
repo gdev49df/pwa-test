@@ -292,7 +292,7 @@
     const a = D.acc.get();
     if (!a || !a.token) return null;
     const when = a.at ? new Date(a.at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-    const pwOld = h('input', { class: 'field', type: 'password', placeholder: 'старый пароль', autocomplete: 'current-password', 'aria-label': 'старый пароль' });
+    const pwOld = h('input', { class: 'field', type: 'password', placeholder: 'текущий пароль', autocomplete: 'current-password', 'aria-label': 'текущий пароль' });
     const pwNew = h('input', { class: 'field', type: 'password', placeholder: 'новый пароль, от 6 символов', autocomplete: 'new-password', 'aria-label': 'новый пароль' });
     const delPw = h('input', { class: 'field', type: 'password', placeholder: 'пароль', autocomplete: 'current-password', 'aria-label': 'пароль' });
     return D.card('', label('аккаунт'),
@@ -300,7 +300,7 @@
         h('div', { class: 'kv' }, h('span', { text: 'логин' }), h('span', { class: 'muted', text: a.login })),
         h('div', { class: 'kv' }, h('span', { text: 'облако' }), h('span', { class: 'muted', text: a.dirty ? 'сохраняется…' : when ? 'сохранено в ' + when : 'сохранено' }))),
       h('div', { class: 'form', style: 'margin-top:12px' },
-        h('button', { class: 'btn block', type: 'button', text: 'сменить пароль', onclick: () => sheetForm('сменить пароль', '', [eye(pwOld), eye(pwNew)], 'сменить', async (v) => {
+        h('button', { class: 'btn block', type: 'button', text: 'сменить пароль', onclick: () => sheetForm('сменить пароль', 'Сначала введи текущий пароль, потом новый.', [eye(pwOld), eye(pwNew)], 'сменить', async (v) => {
           if (v[1].length < 6) return 'новый пароль: от 6 символов';
           const r = await D.api('auth/password', { password: v[0], newPassword: v[1] });
           if (!r.ok) return r.j.detail || 'не получилось';
