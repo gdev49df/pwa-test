@@ -261,14 +261,33 @@
   // высота клавиатуры: чтобы строка ввода в чате ехала вместе с ней
   if (window.visualViewport) {
     const vv = window.visualViewport;
-    const kb = () => document.documentElement.style.setProperty('--kb', Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) + 'px');
-    vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); kb();
+    // строка чата следует за видимой областью: считаем по кадрам, без transition, чтобы не прыгала
+    let kbRaf = 0;
+    const kb = () => {
+      if (kbRaf) return;
+      kbRaf = requestAnimationFrame(() => {
+        kbRaf = 0;
+        const v = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        document.documentElement.style.setProperty('--kb', v + 'px');
+      });
+    };
+    vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); window.addEventListener('scroll', kb, { passive: true }); kb();
   }
-  document.addEventListener('focusin', (e) => { if (e.target.matches('input:not([type=checkbox]), textarea')) document.body.classList.add('typing'); });
-  document.addEventListener('focusout', () => setTimeout(() => {
-    const a = document.activeElement;
-    if (!a || !a.matches('input:not([type=checkbox]), textarea')) document.body.classList.remove('typing');
-  }, 60));
+  // панель прячется только пока реально открыта клавиатура: состояние сверяется с фокусом на каждом событии,
+  // иначе после смены экрана или закрытия клавиатуры класс «typing» мог застрять и панель пропадала
+  const isField = (el) => !!el && el.matches && el.matches('input:not([type=checkbox]), textarea');
+  function syncTyping() {
+    document.body.classList.toggle('typing', isField(document.activeElement));
+    if ($('#sheet') && $('#sheet').hidden) document.body.classList.remove('lock');
+  }
+  document.addEventListener('focusin', syncTyping);
+  document.addEventListener('focusout', () => setTimeout(syncTyping, 60));
+  document.addEventListener('visibilitychange', syncTyping);
+  window.addEventListener('pageshow', syncTyping);
+  window.addEventListener('hashchange', () => setTimeout(syncTyping, 0));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(syncTyping, 120));
+  document.addEventListener('touchend', () => setTimeout(syncTyping, 200), { passive: true });
+  setInterval(syncTyping, 2000);
 
   // подтверждение в своём стиле вместо системного confirm
   function ask(title, text, yes, onyes) {
@@ -745,7 +764,7 @@
       window.scrollTo(0, 0);
     }
     $('#view').replaceChildren(node);
-    updateTabs();
+    updateTabs(); syncTyping();
   }
 
   // перерисовать, сохранив прокрутку (после отметки задачи и т. п.)

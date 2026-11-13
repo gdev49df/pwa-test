@@ -772,3 +772,11 @@ body.standalone .onb-foot, .onb.pwa .onb-foot { padding-bottom: 0; }
 .plan-opt .po-r { font-size: 26px; font-weight: 800; letter-spacing: -.03em; white-space: nowrap; }
 .plan-opt.on { background: var(--paper); border-color: var(--paper); color: #111112; }
 .plan-opt.on small { color: #55555a; }
+
+/* чат: строка ввода не анимирует bottom, иначе она прыгает вслед за клавиатурой */
+.composer { transition: none !important; }
+body.typing .composer { bottom: calc(var(--kb, 0px) + 8px); }
+html.typing-lock, body.typing { overscroll-behavior: none; }
+
+/* нижняя панель всегда поверх и не схлопывается */
+.dock { z-index: 30; transform: translateZ(0); }
