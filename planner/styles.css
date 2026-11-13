@@ -792,3 +792,9 @@ html.typing-lock, body.typing { overscroll-behavior: none; }
 .auth .onb-foot { padding-bottom: 24px; }
 .auth-tabs button { background: transparent !important; border: 0 !important; box-shadow: none !important; color: #c2c2c8; }
 .auth-tabs button.on { background: var(--paper) !important; color: #111112 !important; }
+
+/* меню ниже: ближе к нижнему краю, над индикатором «Домой» */
+.dock { bottom: max(6px, calc(env(safe-area-inset-bottom) - 14px)); }
+.composer { bottom: max(84px, calc(env(safe-area-inset-bottom) + 84px)); }
+body.typing .composer { bottom: calc(var(--kb, 0px) + 8px); }
+.app { padding-bottom: calc(env(safe-area-inset-bottom) + 108px); }

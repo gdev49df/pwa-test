@@ -1,5 +1,5 @@
 // при изменении файлов меняй версию, чтобы кэш обновился
-const CACHE = 'ddx-v45';
+const CACHE = 'ddx-v46';
 const FILES = [
   './',
   './index.html',
