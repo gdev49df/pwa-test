@@ -618,7 +618,7 @@
     root.append(card('flat', label('если не получается'),
       h('p', { class: 'cap', text: 'Нужен iOS 16.4 или новее: для пушей. Если пункта «На экран Домой» нет, обнови iPhone в настройках. Если не помогло, напиши в поддержку.' }),
       h('a', { class: 'btn block', style: 'margin-top:12px', href: 'https://t.me/' + C.support.handle, target: '_blank', rel: 'noopener', text: 'написать в поддержку' })));
-    root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
+    root.append(h('p', { class: 'foot', text: 'DDX Planner v' + C.version + ' · Создано @bauyrzhanov_12_' }));
     return root;
   }
 
@@ -653,7 +653,7 @@
       h('span', { class: 'n', text: D.pad(i + 1) }),
       h('div', null, h('p', { class: 'item-title', text: r[1] }), h('p', { class: 'item-meta', text: r[2] })),
       h('span', { class: 'arrow' }, icon('right')))));
-    root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
+    root.append(h('p', { class: 'foot', text: 'DDX Planner v' + C.version + ' · Создано @bauyrzhanov_12_' }));
     return root;
   }
 
@@ -684,7 +684,7 @@
       h('span', { class: 'n', text: D.pad(i + 1) }),
       h('div', null, h('p', { class: 'item-title', text: r[1] }), h('p', { class: 'item-meta', text: r[2] })),
       h('span', { class: 'arrow' }, icon('right')))));
-    root.append(h('p', { class: 'foot', text: 'Создано @bauyrzhanov_12_' }));
+    root.append(h('p', { class: 'foot', text: 'DDX Planner v' + C.version + ' · Создано @bauyrzhanov_12_' }));
     return root;
   }
 
@@ -856,7 +856,7 @@
     root.append(h('button', { class: 'btn block', type: 'button', text: 'стереть все данные', onclick: () => D.ask('стереть всё?', 'Задачи, заметки, списки, привычки, еда и деньги удалятся. Имя и Pro сохранятся.', 'стереть', () => {
       const keep = { pro: D.S.pro, name: D.S.name }; D.S = D.blank(); D.S.pro = keep.pro; D.S.name = keep.name; save(); toast('данные стёрты'); refresh();
     }) }));
-    root.append(h('p', { class: 'foot', text: 'DDX Planner 2.0. Создано @bauyrzhanov_12_' }));
+    root.append(h('p', { class: 'foot', text: 'DDX Planner v' + C.version + ' · Создано @bauyrzhanov_12_' }));
     return root;
   }
 
