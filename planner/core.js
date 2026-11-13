@@ -567,11 +567,11 @@
       h('p', { class: 'lead', text: t.title }),
       h('p', { class: 'cap', text: dueLabel(t.due, t.time) + (t.place ? ', ' + t.place : '') }),
       h('div', { class: 'line', style: 'margin-top:12px' },
-        h('button', { class: 'btn sm', style: 'flex:1;background:#111112;color:#fff;border-color:#111112', type: 'button', text: 'готово', onclick: () => { toggleTask(t); box.hidden = true; render(false); } }),
-        h('button', { class: 'btn sm', style: 'flex:1;background:transparent;color:#111112;border-color:rgba(0,0,0,.2)', type: 'button', text: '+10 мин', onclick: () => {
+        h('button', { class: 'btn sm', style: 'flex:1;background:var(--paper);color:var(--on-paper);border-color:var(--paper)', type: 'button', text: 'готово', onclick: () => { toggleTask(t); box.hidden = true; render(false); } }),
+        h('button', { class: 'btn sm', style: 'flex:1;background:transparent;color:var(--on-paper);border-color:rgb(var(--w) / .25)', type: 'button', text: '+10 мин', onclick: () => {
           const n = new Date(Date.now() + 600000); t.due = L.dkey(n); t.time = pad(n.getHours()) + ':' + pad(n.getMinutes()); t.fired = false; save(); box.hidden = true; toast('напомню в ' + t.time); render(false);
         } }),
-        h('button', { class: 'btn sm', style: 'background:transparent;color:#111112;border-color:rgba(0,0,0,.2)', type: 'button', 'aria-label': 'закрыть', onclick: () => { box.hidden = true; } }, icon('close'))
+        h('button', { class: 'btn sm', style: 'background:transparent;color:var(--on-paper);border-color:rgb(var(--w) / .25)', type: 'button', 'aria-label': 'закрыть', onclick: () => { box.hidden = true; } }, icon('close'))
       )
     ));
     box.hidden = false;

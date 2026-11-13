@@ -132,7 +132,7 @@
       const t = S.tasks.find((x) => x.id === f.taskId);
       const R = 46, LEN = 2 * Math.PI * R;
       const ring = h('div', { class: 'ring' });
-      ring.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#7a7a80"/></linearGradient></defs>' +
+      ring.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="currentColor"/><stop offset="1" stop-color="#7a7a80"/></linearGradient></defs>' +
         '<circle class="bg" cx="50" cy="50" r="' + R + '"/><circle class="fg" cx="50" cy="50" r="' + R + '" stroke-dasharray="' + LEN + '" stroke-dashoffset="' + LEN + '"/></svg>';
       const clockEl = h('p', { class: 'clock', role: 'timer', 'aria-live': 'off' });
       const of = h('p', { class: 'of' });
@@ -396,37 +396,104 @@
   /* ================= поиск ================= */
 
   let searchQ = '';
+  const SQ_KEY = 'ddx-sq';
+  const recent = () => { try { return JSON.parse(localStorage.getItem(SQ_KEY)) || []; } catch (e) { return []; } };
+  const remember = (q) => { q = q.trim(); if (q.length < 2) return; try { localStorage.setItem(SQ_KEY, JSON.stringify([q].concat(recent().filter((x) => x !== q)).slice(0, 8))); } catch (e) { /* без памяти */ } };
+  // подсвечиваем найденные слова в тексте
+  function hl(text, words) {
+    const out = h('span'), low = String(text).toLowerCase();
+    const hits = [];
+    words.forEach((w) => { let i = low.indexOf(w); while (i >= 0 && w) { hits.push([i, i + w.length]); i = low.indexOf(w, i + w.length); } });
+    hits.sort((x, y) => x[0] - y[0]);
+    let pos = 0;
+    hits.forEach((x) => { if (x[0] < pos) return; if (x[0] > pos) out.append(document.createTextNode(text.slice(pos, x[0]))); out.append(h('mark', { text: text.slice(x[0], x[1]) })); pos = x[1]; });
+    if (pos < text.length) out.append(document.createTextNode(text.slice(pos)));
+    return out;
+  }
+
   function pSearch() {
     const root = h('div', { class: 'stack' });
-    const input = h('input', { class: 'field', type: 'search', placeholder: 'слово, категория или дата: 12.11', value: searchQ, 'aria-label': 'поиск', enterkeyhint: 'search' });
+    const input = h('input', { class: 'field', type: 'search', placeholder: 'слово, категория, дата или «завтра»', value: searchQ, 'aria-label': 'поиск', enterkeyhint: 'search', autocomplete: 'off', autocapitalize: 'off' });
+    const hints = h('div', { class: 'sq-hints' });
     const box = h('div', { class: 'stack' });
     input.addEventListener('input', () => { searchQ = input.value; fill(); });
-    root.append(input, box);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { remember(searchQ); input.blur(); } });
+    root.append(input, hints, box);
     setTimeout(() => { if (!searchQ) input.focus(); }, 300);
+    const setQ = (v) => { searchQ = v; input.value = v; fill(); input.focus(); };
+
+    // слова из данных для подсказок
+    function vocab() {
+      const S = D.S, m = {};
+      const add = (s, w) => String(s || '').toLowerCase().split(/[^a-zа-яё0-9]+/i).forEach((x) => { if (x.length > 2) m[x] = (m[x] || 0) + (w || 1); });
+      S.tasks.forEach((t) => { add(t.title, 2); add(t.place); });
+      S.notes.forEach((n) => { add(n.text); add(n.cat, 3); });
+      S.money.forEach((x) => { add(x.cat, 3); add(x.text); });
+      S.lists.forEach((l) => { add(l.name, 3); l.items.forEach((i) => add(i.t)); });
+      S.habits.forEach((x) => add(x.name, 3));
+      S.meals.forEach((x) => add(x.text));
+      return m;
+    }
+
+    const QUICK = ['сегодня', 'завтра', 'просрочено', 'на неделе', 'без срока', 'выполнено', 'встречи'];
 
     function fill() {
       const S = D.S;
-      box.replaceChildren();
+      box.replaceChildren(); hints.replaceChildren();
       const q = searchQ.trim().toLowerCase();
-      if (q.length < 2) { box.append(empty('что ищем?', 'Поиск идёт по задачам, заметкам, спискам, расходам и еде.')); return; }
+      const words = q.split(/\s+/).filter(Boolean);
+
+      if (q.length < 2) {
+        const rec = recent();
+        if (rec.length) {
+          hints.append(h('div', { class: 'sq-row' }, label('недавние'), h('button', { class: 'link', style: 'min-height:0;padding:0', type: 'button', text: 'очистить', onclick: () => { try { localStorage.removeItem(SQ_KEY); } catch (e) { /* нет */ } fill(); } })));
+          const row = h('div', { class: 'chips' }); rec.forEach((x) => row.append(h('button', { class: 'chip', type: 'button', text: x, onclick: () => setQ(x) }))); hints.append(row);
+        }
+        hints.append(h('div', { class: 'sq-row' }, label('быстрый поиск')));
+        const qr = h('div', { class: 'chips' }); QUICK.forEach((x) => qr.append(h('button', { class: 'chip', type: 'button', text: x, onclick: () => setQ(x) }))); hints.append(qr);
+        const v = vocab(), top = Object.keys(v).sort((x, y) => v[y] - v[x]).slice(0, 10);
+        if (top.length) {
+          hints.append(h('div', { class: 'sq-row' }, label('из твоих записей')));
+          const tr = h('div', { class: 'chips' }); top.forEach((x) => tr.append(h('button', { class: 'chip', type: 'button', text: x, onclick: () => setQ(x) }))); hints.append(tr);
+        }
+        box.append(empty('что ищем?', 'Поиск идёт по задачам, встречам, заметкам, спискам, привычкам, расходам и еде. Слова можно писать вместе: «молоко магазин».'));
+        return;
+      }
+
+      // автодополнение по последнему слову
+      const last = words[words.length - 1], v = vocab();
+      const sug = Object.keys(v).filter((x) => x.startsWith(last) && x !== last).sort((x, y) => v[y] - v[x]).slice(0, 6);
+      if (sug.length) { const sr = h('div', { class: 'chips' }); sug.forEach((x) => sr.append(h('button', { class: 'chip', type: 'button', text: x, onclick: () => setQ(words.slice(0, -1).concat(x).join(' ') + ' ') }))); hints.append(sr); }
+
       const dstr = (ts) => { const d = new Date(ts); return D.pad(d.getDate()) + '.' + D.pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + d.getDate() + ' ' + D.MONTHS[d.getMonth()]; };
-      const has = (s) => String(s || '').toLowerCase().includes(q);
+      const has = (s) => { s = String(s || '').toLowerCase(); return words.every((w) => s.includes(w)); };
+      const t0 = today(), t1 = tomorrow(), wk = L.dkey(L.addDays(new Date(), 7));
+      const smart = {
+        'сегодня': (t) => t.due === t0, 'завтра': (t) => t.due === t1, 'просрочено': (t) => !t.done && t.due && t.due < t0,
+        'на неделе': (t) => t.due && t.due >= t0 && t.due <= wk, 'без срока': (t) => !t.due, 'выполнено': (t) => t.done, 'встречи': (t) => t.kind === 'meeting'
+      };
+      const sm = smart[q];
+      const taskHit = (t) => sm ? sm(t) : (has(t.title + ' ' + (t.place || '') + ' ' + t.subs.map((s) => s.t).join(' ') + ' ' + (t.due ? D.pad(L.fromKey(t.due).getDate()) + '.' + D.pad(L.fromKey(t.due).getMonth() + 1) : '')));
+      const go2 = (fn) => () => { remember(searchQ); fn(); };
+
       const groups = [
-        ['задачи', S.tasks.filter((t) => has(t.title) || has(t.place) || t.subs.some((s) => has(s.t)) || (t.due && has(D.pad(L.fromKey(t.due).getDate()) + '.' + D.pad(L.fromKey(t.due).getMonth() + 1)))).slice(0, 20)
-          .map((t) => [t.title, (t.done ? 'выполнено · ' : '') + (t.due ? D.dueLabel(t.due, t.time) : 'без срока'), () => D.taskSheet(t)])],
-        ['заметки', S.notes.filter((n) => has(n.text) || has(n.cat) || has(dstr(n.t))).slice(0, 20).map((n) => [n.text, (n.archived ? 'архив · ' : '') + (n.cat ? n.cat + ' · ' : '') + D.stampOf(n.t), () => go(n.archived ? 'archive' : 'notes')])],
-        ['списки', [].concat.apply([], S.lists.map((l) => l.items.filter((x) => has(x.t) || has(l.name)).map((x) => [x.t, l.name + (x.done ? ' · отмечено' : ''), () => go('list', l.id)]))).slice(0, 20)],
-        ['деньги', S.money.filter((m) => has(m.text) || has(m.cat) || has(dstr(m.t))).slice(0, 20).map((m) => [(m.kind === 'exp' ? '−' : '+') + fmt(m.amount) + ' ₸ ' + (m.text || ''), (m.cat || '') + ' · ' + D.stampOf(m.t), () => go('money', L.monthKey(new Date(m.t)))])],
-        ['еда', S.meals.filter((m) => has(m.text) || has(dstr(m.t))).slice(0, 20).map((m) => [m.text, (m.kcal ? m.kcal + ' ккал · ' : '') + D.stampOf(m.t), () => go('food')])]
+        ['задачи', S.tasks.filter(taskHit).sort(D.TASK_SORT).slice(0, 25)
+          .map((t) => [t.title, (t.kind === 'meeting' ? 'встреча · ' : '') + (t.done ? 'выполнено · ' : '') + (t.due ? D.dueLabel(t.due, t.time) : 'без срока'), () => D.taskSheet(t)])],
+        sm ? ['', []] : ['заметки', S.notes.filter((n) => has(n.text + ' ' + (n.cat || '') + ' ' + dstr(n.t))).slice(0, 20).map((n) => [n.text, (n.archived ? 'архив · ' : '') + (n.cat ? n.cat + ' · ' : '') + D.stampOf(n.t), () => go(n.archived ? 'archive' : 'notes')])],
+        sm ? ['', []] : ['списки', [].concat.apply([], S.lists.map((l) => l.items.filter((x) => has(x.t + ' ' + l.name)).map((x) => [x.t, l.name + (x.done ? ' · отмечено' : ''), () => go('list', l.id)]))).slice(0, 20)],
+        sm ? ['', []] : ['привычки', S.habits.filter((x) => has(x.name)).map((x) => [x.name, L.streak(x.days, t0) + ' дн. подряд', () => go('habits')])],
+        sm ? ['', []] : ['деньги', S.money.filter((m) => has((m.text || '') + ' ' + (m.cat || '') + ' ' + dstr(m.t))).slice(0, 20).map((m) => [(m.kind === 'exp' ? '−' : '+') + fmt(m.amount) + ' ₸ ' + (m.text || ''), (m.cat || '') + ' · ' + D.stampOf(m.t), () => go('money', L.monthKey(new Date(m.t)))])],
+        sm ? ['', []] : ['еда', S.meals.filter((m) => has(m.text + ' ' + dstr(m.t))).slice(0, 20).map((m) => [m.text, (m.kcal ? m.kcal + ' ккал · ' : '') + D.stampOf(m.t), () => go('food')])]
       ];
       let n = 0;
       groups.forEach((g) => {
         if (!g[1].length) return;
         n += g[1].length;
         box.append(section(g[0], h('span', { class: 'when', text: String(g[1].length) })),
-          card('', g[1].map((r) => h('div', { class: 'item tap', onclick: r[2] }, h('div', { class: 'item-body' }, h('p', { class: 'item-title clamp', style: '-webkit-line-clamp:2', text: r[0] }), h('p', { class: 'item-meta', text: r[1] }))))));
+          card('', g[1].map((r) => h('div', { class: 'item tap', onclick: go2(r[2]) }, h('div', { class: 'item-body' },
+            h('p', { class: 'item-title clamp', style: '-webkit-line-clamp:2' }, sm ? r[0] : hl(r[0], words)), h('p', { class: 'item-meta', text: r[1] }))))));
       });
-      if (!n) box.append(empty('ничего не нашлось', 'Попробуй другое слово.'));
+      if (!n) box.append(empty('ничего не нашлось', sug.length ? 'Посмотри подсказки выше или попробуй другое слово.' : 'Попробуй другое слово или часть слова.'));
     }
     fill();
     return root;
@@ -642,6 +709,7 @@
       ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
       ['stats', 'Статистика', 'задачи, деньги, фокус, привычки'],
       ['timeline', 'Timeline', 'лента событий по дням'],
+      ['week', 'Итог недели', 'что сделал за 7 дней, настройка дня и времени'],
       D.aiOn() ? ['ask', 'Спроси ИИ', 'вопросы по твоим данным'] : null,
       ['search', 'Поиск', 'по всем записям'],
       ['reset', 'Daily Reset', 'разобрать хвосты дня'],
@@ -667,6 +735,7 @@
       ['lists', 'Умные списки', 'покупки, желания, книги, фильмы'],
       ['stats', 'Статистика', 'задачи, деньги, фокус, привычки'],
       ['timeline', 'Timeline', 'лента событий по дням'],
+      ['week', 'Итог недели', 'что сделал за 7 дней, настройка дня и времени'],
       D.aiOn() ? ['ask', 'Спроси ИИ', 'вопросы по твоим данным'] : null,
       ['search', 'Поиск', 'по всем записям'],
       ['reset', 'Daily Reset', 'разобрать хвосты дня'],
@@ -680,6 +749,7 @@
     ].filter(Boolean);
     const root = h('div', { class: 'stack' });
     root.append(D.mark('SETTINGS'));
+    root.append(D.themeCard ? D.themeCard() : null);
     rows.forEach((r, i) => root.append(tapCard('menu-row', () => go(r[0]),
       h('span', { class: 'n', text: D.pad(i + 1) }),
       h('div', null, h('p', { class: 'item-title', text: r[1] }), h('p', { class: 'item-meta', text: r[2] })),

@@ -115,6 +115,8 @@
         h('div', { class: 'pro-cta' }, h('span', { text: 'Посмотреть тарифы' }), icon('right'))));
     }
 
+    if (D.weekCard) root.append(D.weekCard());
+
     // вечерний сброс или список на сегодня
     const pending = S.tasks.filter((t) => !t.done && t.due && t.due <= t0);
     if (now.getHours() >= S.settings.resetHour && pending.length) {
