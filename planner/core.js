@@ -360,7 +360,7 @@
   // запрос к воркеру с токеном. сеть недоступна: бросает ошибку; иначе { ok, status, j }
   async function api(path, body, method, signal) {
     const a = acc.get();
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = method === 'GET' ? {} : { 'Content-Type': 'application/json' };
     if (a && a.token) headers.Authorization = 'Bearer ' + a.token;
     const r = await fetch(String(C.ai.url).replace(/\/?$/, '/') + path, { method: method || 'POST', headers: headers, body: method === 'GET' ? undefined : JSON.stringify(body || {}), signal: signal });
     let j = null;
